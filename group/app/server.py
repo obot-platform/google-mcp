@@ -28,7 +28,7 @@ logger = setup_logger(__name__)
 
 # Configure server-specific settings
 PORT = int(os.getenv("PORT", 9000))
-MCP_PATH = os.getenv("MCP_PATH", "/mcp/google-groups")
+MCP_PATH = os.getenv("MCP_PATH", "/")
 
 mcp = FastMCP(
     name="GoogleGroupsMCPServer",

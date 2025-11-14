@@ -23,7 +23,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   oauth-proxy:
-    image: ghcr.io/obot-platform/mcp-oauth-proxy:master
+    image: ghcr.io/obot-platform/mcp-oauth-proxy:v0.0.1
     environment:
       DATABASE_DSN: "postgres://oauth_user:oauth_password@postgres_oauth:5432/oauth_proxy?sslmode=disable"
       SCOPES_SUPPORTED: "openid,profile,email,https://www.googleapis.com/auth/admin.directory.group,https://www.googleapis.com/auth/admin.directory.group.member"
