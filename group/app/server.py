@@ -122,7 +122,7 @@ def create_google_group(
         Field(description="Description for the new group")
     ] = "",
 ) -> dict:
-    """Creates a new Google Group."""
+    """Creates a new Google Group. Can only create groups with available domains in the Workspace account."""
     if email == "":
         raise ValueError("argument `email` can't be empty")
     if name == "":
