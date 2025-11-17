@@ -3,16 +3,19 @@
 - supports streamable HTTP
 - tools of this mcp server expect `cred_token`(access_token of google oauth) as part of the tool input.
 
-## Installation
-
-### Docker-compose
+## Quickstart
 Export (Google's) Oauth Client ID and Secret for Oauth Proxy
 ```bash
 export OAUTH_CLIENT_ID=xxx
 export OAUTH_CLIENT_SECRET=xxx
 ```
 
-then:
+also export an base64-encoded 32-byte AES-256 key:
+```bash
+export ENCRYPTION_KEY=xxx
+```
+
+### Docker-compose
 ```bash
 docker-compose up
 ```
