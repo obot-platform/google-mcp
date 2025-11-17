@@ -21,6 +21,10 @@ from .apis.members import (
     remove_member,
     has_member,
 )
+from .apis.domains import (
+    list_domains,
+    get_domain,
+)
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
@@ -345,6 +349,43 @@ def check_group_membership(
         raise ToolError(
             f"Failed to check membership of {member_email} in group {group_email}. Exception: {e}"
         )
+
+
+@mcp.tool(
+    annotations={
+        "readOnlyHint": True,
+        "destructiveHint": False,
+    },
+)
+def list_google_domains() -> dict:
+    """Lists all domains in the Google Workspace account. This is useful to see which domains are available for creating groups."""
+    try:
+        service = get_client(_get_access_token())
+        result = list_domains(service)
+        return result
+    except HttpError as err:
+        raise ToolError(f"Failed to list domains. HttpError: {err}")
+
+
+@mcp.tool(
+    annotations={
+        "readOnlyHint": True,
+        "destructiveHint": False,
+    },
+)
+def get_google_domain(
+    domain_name: Annotated[str, Field(description="The domain name to retrieve details for")],
+) -> dict:
+    """Get details of a specific domain in the Google Workspace account."""
+    if domain_name == "":
+        raise ToolError("domain_name cannot be empty")
+    
+    try:
+        service = get_client(_get_access_token())
+        result = get_domain(service, domain_name)
+        return result
+    except HttpError as err:
+        raise ToolError(f"Failed to get domain {domain_name}. HttpError: {err}")
 
 
 def streamable_http_server():

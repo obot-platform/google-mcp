@@ -37,4 +37,5 @@ This MCP server assumes Obot will take care of the Oauth2.0 flow and supply an a
 #### Required OAuth Scopes
 - `https://www.googleapis.com/auth/admin.directory.group`
 - `https://www.googleapis.com/auth/admin.directory.group.member`
+- `https://www.googleapis.com/auth/admin.directory.domain.readonly` (for domain listing)
 
