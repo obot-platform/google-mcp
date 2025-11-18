@@ -34,7 +34,7 @@ jobs:
         id: build-and-push
         with:
           project: bbqjs4tj1g
-          context: ./google/gmail
+          context: ./gmail
           push: true
           pull: true
           platforms: linux/amd64,linux/arm64
