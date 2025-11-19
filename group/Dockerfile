@@ -1,4 +1,4 @@
-FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
+FROM ghcr.io/astral-sh/uv:python3.13-trixie-slim
 
 # Prevents Python from writing .pyc files and buffers stdout/stderr
 ENV PYTHONDONTWRITEBYTECODE=1 \
