@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Obot's google groups mcp server"
 requires-python = ">=3.13"
 dependencies = [
-    "fastmcp>=2.13.0",
+    "fastmcp==2.11.1",
     "google-api-python-client>=2.172.0",
 ]
 
