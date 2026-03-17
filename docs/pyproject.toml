@@ -10,8 +10,8 @@ dependencies = [
 ]
 
 [project.scripts]
-obot-google-docs-mcp = "server:streamable_http_server"
-obot-google-docs-mcp-stdio = "server:stdio_server"
+obot-google-docs-mcp = "app.server:streamable_http_server"
+obot-google-docs-mcp-stdio = "app.server:stdio_server"
 
 [dependency-groups]
 dev = [
