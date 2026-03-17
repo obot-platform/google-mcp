@@ -339,6 +339,7 @@ def list_documents(
         "pageSize": max_results,
         "fields": "nextPageToken, files(id, name, modifiedTime, createdTime)",
         "supportsAllDrives": True,
+        "includeItemsFromAllDrives": True,
     }
 
     if file_name_contains:

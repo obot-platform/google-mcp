@@ -92,9 +92,9 @@ def list_documents_tool(
         )
         return result
     except HttpError as error:
-        raise ToolError(f"Failed to list documents, HttpError: {error}")
+        raise ToolError(f"Failed to list documents, HttpError: {error}") from error
     except Exception as error:
-        raise ToolError(f"Unexpected ToolError: {error}")
+        raise ToolError(f"Unexpected ToolError: {error}") from error
 
 
 @mcp.tool(
@@ -116,9 +116,9 @@ def get_document_tool(
         result = get_document_as_markdown(client, document_id)
         return result
     except HttpError as error:
-        raise ToolError(f"Failed to get document, HttpError: {error}")
+        raise ToolError(f"Failed to get document, HttpError: {error}") from error
     except Exception as error:
-        raise ToolError(f"Unexpected ToolError: {error}")
+        raise ToolError(f"Unexpected ToolError: {error}") from error
 
 
 @mcp.tool(
@@ -143,9 +143,9 @@ def create_document_tool(
             insert_text(client, result["document_id"], initial_content, 1)
         return result
     except HttpError as error:
-        raise ToolError(f"Failed to create document, HttpError: {error}")
+        raise ToolError(f"Failed to create document, HttpError: {error}") from error
     except Exception as error:
-        raise ToolError(f"Unexpected ToolError: {error}")
+        raise ToolError(f"Unexpected ToolError: {error}") from error
 
 
 @mcp.tool(
@@ -172,9 +172,9 @@ def insert_text_tool(
         result = insert_text(client, document_id, text, index)
         return result
     except HttpError as error:
-        raise ToolError(f"Failed to insert text, HttpError: {error}")
+        raise ToolError(f"Failed to insert text, HttpError: {error}") from error
     except Exception as error:
-        raise ToolError(f"Unexpected ToolError: {error}")
+        raise ToolError(f"Unexpected ToolError: {error}") from error
 
 
 @mcp.tool(
@@ -194,9 +194,9 @@ def append_text_tool(
         result = append_text(client, document_id, text)
         return result
     except HttpError as error:
-        raise ToolError(f"Failed to append text, HttpError: {error}")
+        raise ToolError(f"Failed to append text, HttpError: {error}") from error
     except Exception as error:
-        raise ToolError(f"Unexpected ToolError: {error}")
+        raise ToolError(f"Unexpected ToolError: {error}") from error
 
 
 @mcp.tool(
@@ -223,9 +223,9 @@ def replace_text_tool(
         )
         return result
     except HttpError as error:
-        raise ToolError(f"Failed to replace text, HttpError: {error}")
+        raise ToolError(f"Failed to replace text, HttpError: {error}") from error
     except Exception as error:
-        raise ToolError(f"Unexpected ToolError: {error}")
+        raise ToolError(f"Unexpected ToolError: {error}") from error
 
 
 @mcp.tool(
@@ -250,9 +250,9 @@ def delete_content_tool(
         result = delete_content_range(client, document_id, start_index, end_index)
         return result
     except HttpError as error:
-        raise ToolError(f"Failed to delete content, HttpError: {error}")
+        raise ToolError(f"Failed to delete content, HttpError: {error}") from error
     except Exception as error:
-        raise ToolError(f"Unexpected ToolError: {error}")
+        raise ToolError(f"Unexpected ToolError: {error}") from error
 
 
 @mcp.tool(
@@ -307,9 +307,9 @@ def format_text_tool(
         )
         return result
     except HttpError as error:
-        raise ToolError(f"Failed to format text, HttpError: {error}")
+        raise ToolError(f"Failed to format text, HttpError: {error}") from error
     except Exception as error:
-        raise ToolError(f"Unexpected ToolError: {error}")
+        raise ToolError(f"Unexpected ToolError: {error}") from error
 
 
 @mcp.tool(
@@ -353,9 +353,9 @@ def set_paragraph_style_tool(
         )
         return result
     except HttpError as error:
-        raise ToolError(f"Failed to set paragraph style, HttpError: {error}")
+        raise ToolError(f"Failed to set paragraph style, HttpError: {error}") from error
     except Exception as error:
-        raise ToolError(f"Unexpected ToolError: {error}")
+        raise ToolError(f"Unexpected ToolError: {error}") from error
 
 
 @mcp.tool(
@@ -387,9 +387,9 @@ def insert_table_tool(
         result = insert_table(client, document_id, rows, columns, index)
         return result
     except HttpError as error:
-        raise ToolError(f"Failed to insert table, HttpError: {error}")
+        raise ToolError(f"Failed to insert table, HttpError: {error}") from error
     except Exception as error:
-        raise ToolError(f"Unexpected ToolError: {error}")
+        raise ToolError(f"Unexpected ToolError: {error}") from error
 
 
 @mcp.tool(
@@ -414,9 +414,9 @@ def batch_update_document_tool(
         result = batch_update(client, document_id, requests)
         return result
     except HttpError as error:
-        raise ToolError(f"Failed to batch update document, HttpError: {error}")
+        raise ToolError(f"Failed to batch update document, HttpError: {error}") from error
     except Exception as error:
-        raise ToolError(f"Unexpected ToolError: {error}")
+        raise ToolError(f"Unexpected ToolError: {error}") from error
 
 
 def streamable_http_server():
