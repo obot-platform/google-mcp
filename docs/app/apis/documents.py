@@ -148,7 +148,7 @@ def _convert_body_to_markdown(body, lists_dict):
         elif "sectionBreak" in element:
             parts.append("\n---\n")
 
-    return "".join(parts).strip()
+    return "".join(parts).rstrip()
 
 
 def get_document(service, doc_id):
@@ -230,7 +230,6 @@ def delete_content_range(service, doc_id, start, end):
                 "range": {
                     "startIndex": start,
                     "endIndex": end,
-                    "segmentId": "",
                 }
             }
         }

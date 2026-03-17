@@ -6,9 +6,6 @@ from googleapiclient.errors import HttpError
 
 from app.server import mcp
 
-# Configure pytest for async support
-pytestmark = pytest.mark.asyncio
-
 
 # Fixtures
 @pytest.fixture
