@@ -1,0 +1,226 @@
+"""Sitemap management tools: list, get details, submit, delete."""
+
+import json
+import logging
+
+import httpx
+from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
+
+from app.auth import _get_access_token
+from app.gsc_clients import (
+    WEBMASTERS_V3,
+    auth_headers,
+    encode_feedpath,
+    encode_site,
+)
+
+logger = logging.getLogger(__name__)
+
+
+def register_sitemap_tools(mcp: FastMCP) -> None:
+
+    @mcp.tool(
+        name="gsc_list_sitemaps",
+        annotations={
+            "title": "List GSC Sitemaps",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": True,
+        },
+    )
+    async def gsc_list_sitemaps(
+        site_url: str,
+        sitemap_index: str | None = None,
+    ) -> str:
+        """Lists all sitemaps submitted for a GSC property.
+
+        Args:
+            site_url: GSC property URL (e.g. "https://example.com/").
+            sitemap_index: Optional sitemap index URL to filter results.
+                           Only returns sitemaps under this index.
+
+        Returns:
+            str: JSON array of sitemap objects with path, lastSubmitted,
+                 isPending, isSitemapsIndex, lastDownloaded, warnings,
+                 errors, and contents breakdown.
+        """
+        try:
+            access_token = _get_access_token()
+            params = {}
+            if sitemap_index:
+                # Pass raw value — httpx encodes query params automatically.
+                # encode_feedpath() is for path segments only; using it here
+                # would cause double-encoding.
+                params["sitemapIndex"] = sitemap_index
+
+            async with httpx.AsyncClient(
+                headers=auth_headers(access_token), timeout=30.0
+            ) as client:
+                resp = await client.get(
+                    f"{WEBMASTERS_V3}/sites/{encode_site(site_url)}/sitemaps",
+                    params=params,
+                )
+                resp.raise_for_status()
+                data = resp.json()
+                return json.dumps(data.get("sitemap", []), indent=2)
+        except httpx.HTTPStatusError as e:
+            logger.exception("gsc_list_sitemaps failed: HTTP %s — %s", e.response.status_code, e.response.text)
+            raise ToolError(f"Google API error {e.response.status_code}: {e.response.text}")
+        except Exception as e:
+            logger.exception("gsc_list_sitemaps failed")
+            raise ToolError(f"gsc_list_sitemaps failed: {e}")
+
+    @mcp.tool(
+        name="gsc_get_sitemap_details",
+        annotations={
+            "title": "Get GSC Sitemap Details",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": True,
+        },
+    )
+    async def gsc_get_sitemap_details(
+        site_url: str,
+        sitemap_url: str,
+    ) -> str:
+        """Returns full details for a specific sitemap in GSC.
+
+        Args:
+            site_url: GSC property URL (e.g. "https://example.com/").
+            sitemap_url: The full sitemap URL
+                         (e.g. "https://example.com/sitemap.xml").
+
+        Returns:
+            str: JSON object with complete sitemap resource including
+                 path, lastSubmitted, lastDownloaded, warnings, errors,
+                 and full contents breakdown (type, submitted, indexed).
+        """
+        try:
+            access_token = _get_access_token()
+            async with httpx.AsyncClient(
+                headers=auth_headers(access_token), timeout=30.0
+            ) as client:
+                resp = await client.get(
+                    f"{WEBMASTERS_V3}/sites/{encode_site(site_url)}"
+                    f"/sitemaps/{encode_feedpath(sitemap_url)}"
+                )
+                resp.raise_for_status()
+                return json.dumps(resp.json(), indent=2)
+        except httpx.HTTPStatusError as e:
+            logger.exception("gsc_get_sitemap_details failed: HTTP %s — %s", e.response.status_code, e.response.text)
+            raise ToolError(f"Google API error {e.response.status_code}: {e.response.text}")
+        except Exception as e:
+            logger.exception("gsc_get_sitemap_details failed")
+            raise ToolError(f"gsc_get_sitemap_details failed: {e}")
+
+    @mcp.tool(
+        name="gsc_submit_sitemap",
+        annotations={
+            "title": "Submit Sitemap to GSC",
+            "readOnlyHint": False,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": True,
+        },
+    )
+    async def gsc_submit_sitemap(
+        site_url: str,
+        sitemap_url: str,
+    ) -> str:
+        """Submits a sitemap to Google Search Console for a verified property.
+
+        The sitemap URL must be publicly accessible. GSC will fetch and process
+        the sitemap asynchronously after submission.
+
+        Args:
+            site_url: GSC property URL (e.g. "https://example.com/").
+            sitemap_url: The full sitemap URL to submit
+                         (e.g. "https://example.com/sitemap.xml").
+
+        Returns:
+            str: JSON success message or structured error.
+        """
+        try:
+            access_token = _get_access_token()
+            async with httpx.AsyncClient(
+                headers=auth_headers(access_token), timeout=30.0
+            ) as client:
+                resp = await client.put(
+                    f"{WEBMASTERS_V3}/sites/{encode_site(site_url)}"
+                    f"/sitemaps/{encode_feedpath(sitemap_url)}"
+                )
+                if resp.status_code == 204:
+                    return json.dumps({"success": True, "submitted": sitemap_url})
+                if resp.status_code == 400:
+                    raise ToolError(f"Bad request — check that the sitemap URL is valid and publicly accessible: {sitemap_url}")
+                if resp.status_code == 403:
+                    raise ToolError(f"Permission denied submitting sitemap: {sitemap_url}")
+                if resp.status_code == 404:
+                    raise ToolError("GSC property not found. Verify the site_url is registered and verified.")
+                resp.raise_for_status()
+                return json.dumps({"success": True, "submitted": sitemap_url})
+        except ToolError:
+            raise
+        except httpx.HTTPStatusError as e:
+            logger.exception("gsc_submit_sitemap failed: HTTP %s — %s", e.response.status_code, e.response.text)
+            raise ToolError(f"Google API error {e.response.status_code}: {e.response.text}")
+        except Exception as e:
+            logger.exception("gsc_submit_sitemap failed")
+            raise ToolError(f"gsc_submit_sitemap failed: {e}")
+
+    @mcp.tool(
+        name="gsc_delete_sitemap",
+        annotations={
+            "title": "Delete Sitemap from GSC",
+            "readOnlyHint": False,
+            "destructiveHint": True,
+            "idempotentHint": True,
+            "openWorldHint": True,
+        },
+    )
+    async def gsc_delete_sitemap(
+        site_url: str,
+        sitemap_url: str,
+    ) -> str:
+        """Removes a sitemap from Google Search Console.
+
+        WARNING: This removes the sitemap from GSC tracking. The sitemap file
+        itself is not deleted — it remains on your server. Re-submitting is
+        possible at any time.
+
+        Args:
+            site_url: GSC property URL (e.g. "https://example.com/").
+            sitemap_url: The full sitemap URL to delete
+                         (e.g. "https://example.com/sitemap.xml").
+
+        Returns:
+            str: JSON confirmation or structured error.
+        """
+        try:
+            access_token = _get_access_token()
+            async with httpx.AsyncClient(
+                headers=auth_headers(access_token), timeout=30.0
+            ) as client:
+                resp = await client.delete(
+                    f"{WEBMASTERS_V3}/sites/{encode_site(site_url)}"
+                    f"/sitemaps/{encode_feedpath(sitemap_url)}"
+                )
+                if resp.status_code == 204:
+                    return json.dumps({"success": True, "deleted": sitemap_url})
+                if resp.status_code == 404:
+                    raise ToolError(f"Sitemap not found in GSC: {sitemap_url}")
+                if resp.status_code == 403:
+                    raise ToolError(f"Permission denied deleting sitemap: {sitemap_url}")
+                resp.raise_for_status()
+                return json.dumps({"success": True, "deleted": sitemap_url})
+        except ToolError:
+            raise
+        except httpx.HTTPStatusError as e:
+            logger.exception("gsc_delete_sitemap failed: HTTP %s — %s", e.response.status_code, e.response.text)
+            raise ToolError(f"Google API error {e.response.status_code}: {e.response.text}")
+        except Exception as e:
+            logger.exception("gsc_delete_sitemap failed")
+            raise ToolError(f"gsc_delete_sitemap failed: {e}")
