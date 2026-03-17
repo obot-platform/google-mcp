@@ -6,6 +6,7 @@ from typing import Any
 
 import httpx
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 
 from app.auth import _get_access_token
 from app.ga_clients import DATA_V1BETA, auth_headers, property_name
@@ -92,6 +93,9 @@ def register_reporting_tools(mcp: FastMCP) -> None:
                 )
                 resp.raise_for_status()
                 return json.dumps(resp.json(), indent=2)
+        except httpx.HTTPStatusError as e:
+            logger.exception("ga_run_report failed: HTTP %s — %s", e.response.status_code, e.response.text)
+            raise ToolError(f"Google API error {e.response.status_code}: {e.response.text}")
         except Exception as e:
             logger.exception("ga_run_report failed")
-            return json.dumps({"error": str(e)})
+            raise ToolError(f"ga_run_report failed: {e}")

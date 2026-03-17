@@ -16,7 +16,9 @@ MCP_PATH = os.getenv("MCP_PATH", "/mcp/google-analytics")
 
 mcp = FastMCP(
     name="google_analytics_mcp",
-    on_duplicate="error",
+    on_duplicate_tools="error",
+    on_duplicate_resources="warn",
+    on_duplicate_prompts="replace",
     mask_error_details=True,
 )
 

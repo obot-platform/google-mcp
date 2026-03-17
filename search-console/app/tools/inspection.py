@@ -6,6 +6,7 @@ from datetime import date, timedelta
 
 import httpx
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 
 from app.auth import _get_access_token
 from app.gsc_clients import (
@@ -88,14 +89,10 @@ def register_inspection_tools(mcp: FastMCP) -> None:
                 return json.dumps(resp.json(), indent=2)
         except httpx.HTTPStatusError as e:
             logger.exception("gsc_inspect_url failed: HTTP %s — %s", e.response.status_code, e.response.text)
-            try:
-                detail = e.response.json()
-            except Exception:
-                detail = e.response.text
-            return json.dumps({"error": f"Google API error {e.response.status_code}", "detail": detail})
+            raise ToolError(f"Google API error {e.response.status_code}: {e.response.text}")
         except Exception as e:
             logger.exception("gsc_inspect_url failed")
-            return json.dumps({"error": str(e)})
+            raise ToolError(f"gsc_inspect_url failed: {e}")
 
     @mcp.tool(
         name="gsc_batch_inspect_urls",
@@ -124,9 +121,7 @@ def register_inspection_tools(mcp: FastMCP) -> None:
                  "summary" (counts of indexed, not_indexed, errors).
         """
         if len(urls) > _MAX_BATCH_URLS:
-            return json.dumps({
-                "error": f"Maximum {_MAX_BATCH_URLS} URLs per batch. Received {len(urls)}."
-            })
+            raise ToolError(f"Maximum {_MAX_BATCH_URLS} URLs per batch. Received {len(urls)}.")
 
         try:
             access_token = _get_access_token()
@@ -172,14 +167,10 @@ def register_inspection_tools(mcp: FastMCP) -> None:
             }, indent=2)
         except httpx.HTTPStatusError as e:
             logger.exception("gsc_batch_inspect_urls failed: HTTP %s — %s", e.response.status_code, e.response.text)
-            try:
-                detail = e.response.json()
-            except Exception:
-                detail = e.response.text
-            return json.dumps({"error": f"Google API error {e.response.status_code}", "detail": detail})
+            raise ToolError(f"Google API error {e.response.status_code}: {e.response.text}")
         except Exception as e:
             logger.exception("gsc_batch_inspect_urls failed")
-            return json.dumps({"error": str(e)})
+            raise ToolError(f"gsc_batch_inspect_urls failed: {e}")
 
     @mcp.tool(
         name="gsc_check_indexing_issues",
@@ -208,9 +199,7 @@ def register_inspection_tools(mcp: FastMCP) -> None:
             str: JSON object with lists of URLs grouped by issue category.
         """
         if len(urls) > _MAX_BATCH_URLS:
-            return json.dumps({
-                "error": f"Maximum {_MAX_BATCH_URLS} URLs per batch. Received {len(urls)}."
-            })
+            raise ToolError(f"Maximum {_MAX_BATCH_URLS} URLs per batch. Received {len(urls)}.")
 
         try:
             access_token = _get_access_token()
@@ -242,14 +231,10 @@ def register_inspection_tools(mcp: FastMCP) -> None:
             return json.dumps(categories, indent=2)
         except httpx.HTTPStatusError as e:
             logger.exception("gsc_check_indexing_issues failed: HTTP %s — %s", e.response.status_code, e.response.text)
-            try:
-                detail = e.response.json()
-            except Exception:
-                detail = e.response.text
-            return json.dumps({"error": f"Google API error {e.response.status_code}", "detail": detail})
+            raise ToolError(f"Google API error {e.response.status_code}: {e.response.text}")
         except Exception as e:
             logger.exception("gsc_check_indexing_issues failed")
-            return json.dumps({"error": str(e)})
+            raise ToolError(f"gsc_check_indexing_issues failed: {e}")
 
     @mcp.tool(
         name="gsc_get_performance_overview",
@@ -342,11 +327,7 @@ def register_inspection_tools(mcp: FastMCP) -> None:
             return json.dumps({"totals": totals, "daily_trend": daily_trend}, indent=2)
         except httpx.HTTPStatusError as e:
             logger.exception("gsc_get_performance_overview failed: HTTP %s — %s", e.response.status_code, e.response.text)
-            try:
-                detail = e.response.json()
-            except Exception:
-                detail = e.response.text
-            return json.dumps({"error": f"Google API error {e.response.status_code}", "detail": detail})
+            raise ToolError(f"Google API error {e.response.status_code}: {e.response.text}")
         except Exception as e:
             logger.exception("gsc_get_performance_overview failed")
-            return json.dumps({"error": str(e)})
+            raise ToolError(f"gsc_get_performance_overview failed: {e}")

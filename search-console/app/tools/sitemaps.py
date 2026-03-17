@@ -5,6 +5,7 @@ import logging
 
 import httpx
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 
 from app.auth import _get_access_token
 from app.gsc_clients import (
@@ -66,14 +67,10 @@ def register_sitemap_tools(mcp: FastMCP) -> None:
                 return json.dumps(data.get("sitemap", []), indent=2)
         except httpx.HTTPStatusError as e:
             logger.exception("gsc_list_sitemaps failed: HTTP %s — %s", e.response.status_code, e.response.text)
-            try:
-                detail = e.response.json()
-            except Exception:
-                detail = e.response.text
-            return json.dumps({"error": f"Google API error {e.response.status_code}", "detail": detail})
+            raise ToolError(f"Google API error {e.response.status_code}: {e.response.text}")
         except Exception as e:
             logger.exception("gsc_list_sitemaps failed")
-            return json.dumps({"error": str(e)})
+            raise ToolError(f"gsc_list_sitemaps failed: {e}")
 
     @mcp.tool(
         name="gsc_get_sitemap_details",
@@ -114,14 +111,10 @@ def register_sitemap_tools(mcp: FastMCP) -> None:
                 return json.dumps(resp.json(), indent=2)
         except httpx.HTTPStatusError as e:
             logger.exception("gsc_get_sitemap_details failed: HTTP %s — %s", e.response.status_code, e.response.text)
-            try:
-                detail = e.response.json()
-            except Exception:
-                detail = e.response.text
-            return json.dumps({"error": f"Google API error {e.response.status_code}", "detail": detail})
+            raise ToolError(f"Google API error {e.response.status_code}: {e.response.text}")
         except Exception as e:
             logger.exception("gsc_get_sitemap_details failed")
-            return json.dumps({"error": str(e)})
+            raise ToolError(f"gsc_get_sitemap_details failed: {e}")
 
     @mcp.tool(
         name="gsc_submit_sitemap",
@@ -162,39 +155,21 @@ def register_sitemap_tools(mcp: FastMCP) -> None:
                 if resp.status_code == 204:
                     return json.dumps({"success": True, "submitted": sitemap_url})
                 if resp.status_code == 400:
-                    detail = resp.json() if resp.content else {}
-                    return json.dumps({
-                        "success": False,
-                        "error": "Bad request — check that the sitemap URL is valid and publicly accessible.",
-                        "detail": detail,
-                    })
+                    raise ToolError(f"Bad request — check that the sitemap URL is valid and publicly accessible: {sitemap_url}")
                 if resp.status_code == 403:
-                    try:
-                        detail = resp.json()
-                    except Exception:
-                        detail = resp.text
-                    return json.dumps({
-                        "success": False,
-                        "error": "Permission denied.",
-                        "detail": detail,
-                    })
+                    raise ToolError(f"Permission denied submitting sitemap: {sitemap_url}")
                 if resp.status_code == 404:
-                    return json.dumps({
-                        "success": False,
-                        "error": "GSC property not found. Verify the site_url is registered and verified.",
-                    })
+                    raise ToolError("GSC property not found. Verify the site_url is registered and verified.")
                 resp.raise_for_status()
                 return json.dumps({"success": True, "submitted": sitemap_url})
+        except ToolError:
+            raise
         except httpx.HTTPStatusError as e:
             logger.exception("gsc_submit_sitemap failed: HTTP %s — %s", e.response.status_code, e.response.text)
-            try:
-                detail = e.response.json()
-            except Exception:
-                detail = e.response.text
-            return json.dumps({"error": f"Google API error {e.response.status_code}", "detail": detail})
+            raise ToolError(f"Google API error {e.response.status_code}: {e.response.text}")
         except Exception as e:
             logger.exception("gsc_submit_sitemap failed")
-            return json.dumps({"error": str(e)})
+            raise ToolError(f"gsc_submit_sitemap failed: {e}")
 
     @mcp.tool(
         name="gsc_delete_sitemap",
@@ -236,30 +211,16 @@ def register_sitemap_tools(mcp: FastMCP) -> None:
                 if resp.status_code == 204:
                     return json.dumps({"success": True, "deleted": sitemap_url})
                 if resp.status_code == 404:
-                    return json.dumps({
-                        "success": False,
-                        "error": "Sitemap not found in GSC.",
-                        "sitemapUrl": sitemap_url,
-                    })
+                    raise ToolError(f"Sitemap not found in GSC: {sitemap_url}")
                 if resp.status_code == 403:
-                    try:
-                        detail = resp.json()
-                    except Exception:
-                        detail = resp.text
-                    return json.dumps({
-                        "success": False,
-                        "error": "Permission denied.",
-                        "detail": detail,
-                    })
+                    raise ToolError(f"Permission denied deleting sitemap: {sitemap_url}")
                 resp.raise_for_status()
                 return json.dumps({"success": True, "deleted": sitemap_url})
+        except ToolError:
+            raise
         except httpx.HTTPStatusError as e:
             logger.exception("gsc_delete_sitemap failed: HTTP %s — %s", e.response.status_code, e.response.text)
-            try:
-                detail = e.response.json()
-            except Exception:
-                detail = e.response.text
-            return json.dumps({"error": f"Google API error {e.response.status_code}", "detail": detail})
+            raise ToolError(f"Google API error {e.response.status_code}: {e.response.text}")
         except Exception as e:
             logger.exception("gsc_delete_sitemap failed")
-            return json.dumps({"error": str(e)})
+            raise ToolError(f"gsc_delete_sitemap failed: {e}")

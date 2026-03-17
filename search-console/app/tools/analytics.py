@@ -6,6 +6,7 @@ from datetime import date, timedelta
 
 import httpx
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 
 from app.auth import _get_access_token
 from app.gsc_clients import WEBMASTERS_V3, auth_headers, encode_site
@@ -39,7 +40,7 @@ def register_analytics_tools(mcp: FastMCP) -> None:
     async def gsc_get_search_analytics(
         site_url: str,
         days: int = 28,
-        dimensions: list[str] = ["query"],
+        dimensions: list[str] | None = None,
         row_limit: int = 100,
         search_type: str = "web",
     ) -> str:
@@ -62,6 +63,8 @@ def register_analytics_tools(mcp: FastMCP) -> None:
             str: JSON array of rows. Each row has a "keys" list (dimension values)
                  and "clicks", "impressions", "ctr" (as percentage), "position".
         """
+        if dimensions is None:
+            dimensions = ["query"]
         try:
             access_token = _get_access_token()
             if row_limit > _MAX_ROW_LIMIT:
@@ -98,14 +101,10 @@ def register_analytics_tools(mcp: FastMCP) -> None:
             return json.dumps(rows, indent=2)
         except httpx.HTTPStatusError as e:
             logger.exception("gsc_get_search_analytics failed: HTTP %s — %s", e.response.status_code, e.response.text)
-            try:
-                detail = e.response.json()
-            except Exception:
-                detail = e.response.text
-            return json.dumps({"error": f"Google API error {e.response.status_code}", "detail": detail})
+            raise ToolError(f"Google API error {e.response.status_code}: {e.response.text}")
         except Exception as e:
             logger.exception("gsc_get_search_analytics failed")
-            return json.dumps({"error": str(e)})
+            raise ToolError(f"gsc_get_search_analytics failed: {e}")
 
     @mcp.tool(
         name="gsc_get_advanced_search_analytics",
@@ -121,7 +120,7 @@ def register_analytics_tools(mcp: FastMCP) -> None:
         site_url: str,
         start_date: str,
         end_date: str,
-        dimensions: list[str] = ["query"],
+        dimensions: list[str] | None = None,
         search_type: str = "web",
         row_limit: int = 1000,
         start_row: int = 0,
@@ -152,6 +151,8 @@ def register_analytics_tools(mcp: FastMCP) -> None:
         Returns:
             str: JSON object with "rows" array and "responseAggregationType".
         """
+        if dimensions is None:
+            dimensions = ["query"]
         try:
             access_token = _get_access_token()
             if row_limit > _MAX_ADVANCED_ROW_LIMIT:
@@ -188,14 +189,10 @@ def register_analytics_tools(mcp: FastMCP) -> None:
                 return json.dumps(resp.json(), indent=2)
         except httpx.HTTPStatusError as e:
             logger.exception("gsc_get_advanced_search_analytics failed: HTTP %s — %s", e.response.status_code, e.response.text)
-            try:
-                detail = e.response.json()
-            except Exception:
-                detail = e.response.text
-            return json.dumps({"error": f"Google API error {e.response.status_code}", "detail": detail})
+            raise ToolError(f"Google API error {e.response.status_code}: {e.response.text}")
         except Exception as e:
             logger.exception("gsc_get_advanced_search_analytics failed")
-            return json.dumps({"error": str(e)})
+            raise ToolError(f"gsc_get_advanced_search_analytics failed: {e}")
 
     @mcp.tool(
         name="gsc_compare_periods",
@@ -213,7 +210,7 @@ def register_analytics_tools(mcp: FastMCP) -> None:
         period1_end: str,
         period2_start: str,
         period2_end: str,
-        dimensions: list[str] = ["query"],
+        dimensions: list[str] | None = None,
         row_limit: int = 50,
     ) -> str:
         """Compares search performance metrics between two date ranges.
@@ -235,6 +232,8 @@ def register_analytics_tools(mcp: FastMCP) -> None:
             str: JSON array sorted by absolute click change (descending).
                  Each item includes dimension keys and changes for all metrics.
         """
+        if dimensions is None:
+            dimensions = ["query"]
         try:
             access_token = _get_access_token()
 
@@ -303,14 +302,10 @@ def register_analytics_tools(mcp: FastMCP) -> None:
             return json.dumps(comparison, indent=2)
         except httpx.HTTPStatusError as e:
             logger.exception("gsc_compare_periods failed: HTTP %s — %s", e.response.status_code, e.response.text)
-            try:
-                detail = e.response.json()
-            except Exception:
-                detail = e.response.text
-            return json.dumps({"error": f"Google API error {e.response.status_code}", "detail": detail})
+            raise ToolError(f"Google API error {e.response.status_code}: {e.response.text}")
         except Exception as e:
             logger.exception("gsc_compare_periods failed")
-            return json.dumps({"error": str(e)})
+            raise ToolError(f"gsc_compare_periods failed: {e}")
 
     @mcp.tool(
         name="gsc_get_page_queries",
@@ -397,11 +392,7 @@ def register_analytics_tools(mcp: FastMCP) -> None:
             return json.dumps(rows, indent=2)
         except httpx.HTTPStatusError as e:
             logger.exception("gsc_get_page_queries failed: HTTP %s — %s", e.response.status_code, e.response.text)
-            try:
-                detail = e.response.json()
-            except Exception:
-                detail = e.response.text
-            return json.dumps({"error": f"Google API error {e.response.status_code}", "detail": detail})
+            raise ToolError(f"Google API error {e.response.status_code}: {e.response.text}")
         except Exception as e:
             logger.exception("gsc_get_page_queries failed")
-            return json.dumps({"error": str(e)})
+            raise ToolError(f"gsc_get_page_queries failed: {e}")

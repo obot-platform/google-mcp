@@ -5,6 +5,7 @@ import logging
 
 import httpx
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 
 from app.auth import _get_access_token
 from app.ga_clients import (
@@ -63,9 +64,12 @@ def register_admin_tools(mcp: FastMCP) -> None:
                     if not page_token:
                         break
             return json.dumps(results, indent=2)
+        except httpx.HTTPStatusError as e:
+            logger.exception("ga_get_account_summaries failed: HTTP %s — %s", e.response.status_code, e.response.text)
+            raise ToolError(f"Google API error {e.response.status_code}: {e.response.text}")
         except Exception as e:
             logger.exception("ga_get_account_summaries failed")
-            return json.dumps({"error": str(e)})
+            raise ToolError(f"ga_get_account_summaries failed: {e}")
 
     @mcp.tool(
         name="ga_get_property_details",
@@ -100,9 +104,12 @@ def register_admin_tools(mcp: FastMCP) -> None:
                 )
                 resp.raise_for_status()
                 return json.dumps(resp.json(), indent=2)
+        except httpx.HTTPStatusError as e:
+            logger.exception("ga_get_property_details failed: HTTP %s — %s", e.response.status_code, e.response.text)
+            raise ToolError(f"Google API error {e.response.status_code}: {e.response.text}")
         except Exception as e:
             logger.exception("ga_get_property_details failed")
-            return json.dumps({"error": str(e)})
+            raise ToolError(f"ga_get_property_details failed: {e}")
 
     @mcp.tool(
         name="ga_list_google_ads_links",
@@ -149,9 +156,12 @@ def register_admin_tools(mcp: FastMCP) -> None:
                     if not page_token:
                         break
             return json.dumps(results, indent=2)
+        except httpx.HTTPStatusError as e:
+            logger.exception("ga_list_google_ads_links failed: HTTP %s — %s", e.response.status_code, e.response.text)
+            raise ToolError(f"Google API error {e.response.status_code}: {e.response.text}")
         except Exception as e:
             logger.exception("ga_list_google_ads_links failed")
-            return json.dumps({"error": str(e)})
+            raise ToolError(f"ga_list_google_ads_links failed: {e}")
 
     @mcp.tool(
         name="ga_list_property_annotations",
@@ -202,6 +212,9 @@ def register_admin_tools(mcp: FastMCP) -> None:
                     if not page_token:
                         break
             return json.dumps(results, indent=2)
+        except httpx.HTTPStatusError as e:
+            logger.exception("ga_list_property_annotations failed: HTTP %s — %s", e.response.status_code, e.response.text)
+            raise ToolError(f"Google API error {e.response.status_code}: {e.response.text}")
         except Exception as e:
             logger.exception("ga_list_property_annotations failed")
-            return json.dumps({"error": str(e)})
+            raise ToolError(f"ga_list_property_annotations failed: {e}")

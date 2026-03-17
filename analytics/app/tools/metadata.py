@@ -5,6 +5,7 @@ import logging
 
 import httpx
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 
 from app.auth import _get_access_token
 from app.ga_clients import DATA_V1BETA, auth_headers, property_name
@@ -63,6 +64,9 @@ def register_metadata_tools(mcp: FastMCP) -> None:
                 {"customDimensions": custom_dimensions, "customMetrics": custom_metrics},
                 indent=2,
             )
+        except httpx.HTTPStatusError as e:
+            logger.exception("ga_get_custom_dimensions_and_metrics failed: HTTP %s — %s", e.response.status_code, e.response.text)
+            raise ToolError(f"Google API error {e.response.status_code}: {e.response.text}")
         except Exception as e:
             logger.exception("ga_get_custom_dimensions_and_metrics failed")
-            return json.dumps({"error": str(e)})
+            raise ToolError(f"ga_get_custom_dimensions_and_metrics failed: {e}")

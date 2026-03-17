@@ -5,6 +5,7 @@ import logging
 
 import httpx
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 
 from app.auth import _get_access_token
 from app.gsc_clients import WEBMASTERS_V3, auth_headers, encode_site
@@ -44,14 +45,10 @@ def register_property_tools(mcp: FastMCP) -> None:
                 return json.dumps(data.get("siteEntry", []), indent=2)
         except httpx.HTTPStatusError as e:
             logger.exception("gsc_list_properties failed: HTTP %s — %s", e.response.status_code, e.response.text)
-            try:
-                detail = e.response.json()
-            except Exception:
-                detail = e.response.text
-            return json.dumps({"error": f"Google API error {e.response.status_code}", "detail": detail})
+            raise ToolError(f"Google API error {e.response.status_code}: {e.response.text}")
         except Exception as e:
             logger.exception("gsc_list_properties failed")
-            return json.dumps({"error": str(e)})
+            raise ToolError(f"gsc_list_properties failed: {e}")
 
     @mcp.tool(
         name="gsc_get_site_details",
@@ -87,14 +84,10 @@ def register_property_tools(mcp: FastMCP) -> None:
                 return json.dumps(resp.json(), indent=2)
         except httpx.HTTPStatusError as e:
             logger.exception("gsc_get_site_details failed: HTTP %s — %s", e.response.status_code, e.response.text)
-            try:
-                detail = e.response.json()
-            except Exception:
-                detail = e.response.text
-            return json.dumps({"error": f"Google API error {e.response.status_code}", "detail": detail})
+            raise ToolError(f"Google API error {e.response.status_code}: {e.response.text}")
         except Exception as e:
             logger.exception("gsc_get_site_details failed")
-            return json.dumps({"error": str(e)})
+            raise ToolError(f"gsc_get_site_details failed: {e}")
 
     @mcp.tool(
         name="gsc_add_site",
@@ -132,28 +125,21 @@ def register_property_tools(mcp: FastMCP) -> None:
                 if resp.status_code == 204:
                     return json.dumps({"success": True, "siteUrl": site_url})
                 if resp.status_code == 409:
-                    return json.dumps({"success": False, "error": "Site already exists in GSC.", "siteUrl": site_url})
+                    raise ToolError(f"Site already exists in GSC: {site_url}")
                 if resp.status_code == 403:
-                    try:
-                        detail = resp.json()
-                    except Exception:
-                        detail = resp.text
-                    return json.dumps({"success": False, "error": "Permission denied.", "detail": detail, "siteUrl": site_url})
+                    raise ToolError(f"Permission denied adding site: {site_url}")
                 if resp.status_code == 400:
-                    detail = resp.json() if resp.content else {}
-                    return json.dumps({"success": False, "error": "Bad request — invalid site URL format.", "detail": detail, "siteUrl": site_url})
+                    raise ToolError(f"Bad request — invalid site URL format: {site_url}")
                 resp.raise_for_status()
                 return json.dumps({"success": True, "siteUrl": site_url})
+        except ToolError:
+            raise
         except httpx.HTTPStatusError as e:
             logger.exception("gsc_add_site failed: HTTP %s — %s", e.response.status_code, e.response.text)
-            try:
-                detail = e.response.json()
-            except Exception:
-                detail = e.response.text
-            return json.dumps({"error": f"Google API error {e.response.status_code}", "detail": detail})
+            raise ToolError(f"Google API error {e.response.status_code}: {e.response.text}")
         except Exception as e:
             logger.exception("gsc_add_site failed")
-            return json.dumps({"error": str(e)})
+            raise ToolError(f"gsc_add_site failed: {e}")
 
     @mcp.tool(
         name="gsc_delete_site",
@@ -192,22 +178,16 @@ def register_property_tools(mcp: FastMCP) -> None:
                 if resp.status_code == 204:
                     return json.dumps({"success": True, "deleted": site_url})
                 if resp.status_code == 404:
-                    return json.dumps({"success": False, "error": "Site not found in GSC.", "siteUrl": site_url})
+                    raise ToolError(f"Site not found in GSC: {site_url}")
                 if resp.status_code == 403:
-                    try:
-                        detail = resp.json()
-                    except Exception:
-                        detail = resp.text
-                    return json.dumps({"success": False, "error": "Permission denied.", "detail": detail, "siteUrl": site_url})
+                    raise ToolError(f"Permission denied deleting site: {site_url}")
                 resp.raise_for_status()
                 return json.dumps({"success": True, "deleted": site_url})
+        except ToolError:
+            raise
         except httpx.HTTPStatusError as e:
             logger.exception("gsc_delete_site failed: HTTP %s — %s", e.response.status_code, e.response.text)
-            try:
-                detail = e.response.json()
-            except Exception:
-                detail = e.response.text
-            return json.dumps({"error": f"Google API error {e.response.status_code}", "detail": detail})
+            raise ToolError(f"Google API error {e.response.status_code}: {e.response.text}")
         except Exception as e:
             logger.exception("gsc_delete_site failed")
-            return json.dumps({"error": str(e)})
+            raise ToolError(f"gsc_delete_site failed: {e}")
