@@ -119,7 +119,7 @@ def _convert_table(table):
                     for element in para.get("elements", []):
                         text_run = element.get("textRun")
                         if text_run:
-                            parts.append(text_run.get("content", "").strip())
+                            parts.append(text_run.get("content", "").strip().replace("|", "\\|"))
             cell_texts.append(" ".join(parts))
         md_rows.append(cell_texts)
 
@@ -202,7 +202,7 @@ def append_text(service, doc_id, text):
     doc = get_document(service, doc_id)
     body = doc.get("body", {})
     content = body.get("content", [])
-    end_index = content[-1].get("endIndex", 1) - 1 if content else 1
+    end_index = max(content[-1].get("endIndex", 1) - 1, 1) if content else 1
     return insert_text(service, doc_id, text, end_index)
 
 

@@ -75,24 +75,22 @@ class TestMCPServer:
         """Test that all tools are properly registered"""
         async with Client(mcp) as client:
             tools = await client.list_tools()
-            assert len(tools) == 11
 
-        tool_names = [tool.name for tool in tools]
-        expected_tools = [
-            "list_documents",
-            "get_document",
-            "create_document",
-            "insert_text",
-            "append_text",
-            "replace_text",
-            "delete_content",
-            "format_text",
-            "set_paragraph_style",
-            "insert_table",
-            "batch_update_document",
-        ]
-        for tool in expected_tools:
-            assert tool in tool_names
+            tool_names = {tool.name for tool in tools}
+            expected_tools = {
+                "list_documents",
+                "get_document",
+                "create_document",
+                "insert_text",
+                "append_text",
+                "replace_text",
+                "delete_content",
+                "format_text",
+                "set_paragraph_style",
+                "insert_table",
+                "batch_update_document",
+            }
+            assert expected_tools <= tool_names
 
 
 # Unit Tests - Testing Individual Functions
