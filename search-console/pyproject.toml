@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Obot's google search console mcp server"
 requires-python = ">=3.13"
 dependencies = [
-    "fastmcp>=2.11.1",
+    "fastmcp==2.11.2",
     "httpx>=0.28.1",
 ]
 
