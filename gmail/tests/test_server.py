@@ -169,8 +169,8 @@ class TestEmailFunctions:
 
         async with Client(mcp) as client:
             result = await client.call_tool(name="list_emails", arguments={})
-            res_json = result[0].text
-            assert res_json == "Formatted Email"
+            res_json = result.content[0].text
+            assert json.loads(res_json) == ["Formatted Email"]
 
     @patch("obot_gmail_mcp.server._get_access_token")
     @patch("obot_gmail_mcp.server.get_client")
@@ -187,7 +187,7 @@ class TestEmailFunctions:
 
         async with Client(mcp) as client:
             result = await client.call_tool(name="list_emails", arguments={})
-            res_json = result[0].text
+            res_json = result.content[0].text
             assert res_json == "No emails found"
 
     @patch("obot_gmail_mcp.server._get_access_token")
@@ -240,7 +240,7 @@ class TestEmailFunctions:
             result = await client.call_tool(
                 name="read_email", arguments={"email_id": "test_id"}
             )
-            res_json = json.loads(result[0].text)
+            res_json = json.loads(result.content[0].text)
             assert res_json["body"] == "Test email body"
             assert res_json["metadata"] == "Test metadata"
             assert res_json["has_attachment"] == False
@@ -277,7 +277,7 @@ class TestEmailFunctions:
             result = await client.call_tool(
                 name="delete_email", arguments={"email_id": "test_id"}
             )
-            res_json = result[0].text
+            res_json = result.content[0].text
             assert "deleted successfully" in res_json
 
         mock_service.users().messages().trash.assert_called_with(
@@ -306,7 +306,7 @@ class TestEmailFunctions:
                     "message": "Test message",
                 },
             )
-            res_json = result[0].text
+            res_json = result.content[0].text
             assert "Message sent successfully" in res_json
 
     @patch("obot_gmail_mcp.server._get_access_token")
@@ -324,7 +324,7 @@ class TestEmailFunctions:
             result = await client.call_tool(
                 name="get_current_email_address", arguments={}
             )
-            res_json = result[0].text
+            res_json = result.content[0].text
             assert res_json == "user@example.com"
 
         mock_service.users().getProfile.assert_called_with(userId="me")
@@ -347,7 +347,7 @@ class TestEmailFunctions:
                 name="modify_message_labels",
                 arguments={"email_id": "test_id", "add_label_ids": ["STARRED"]},
             )
-            res_json = json.loads(result[0].text)
+            res_json = json.loads(result.content[0].text)
             assert res_json["id"] == "test_id"
 
     @patch("obot_gmail_mcp.server._get_access_token")
@@ -371,9 +371,9 @@ class TestEmailFunctions:
             result = await client.call_tool(
                 name="list_attachments", arguments={"email_id": "test_id"}
             )
-            res_json = json.loads(result[0].text)
-            assert res_json["filename"] == "test.pdf"
-            assert res_json["id"] == "attachment_id"
+            res_json = json.loads(result.content[0].text)
+            assert res_json[0]["filename"] == "test.pdf"
+            assert res_json[0]["id"] == "attachment_id"
 
     @patch("obot_gmail_mcp.server._get_access_token")
     @patch("obot_gmail_mcp.server.get_client")
@@ -390,7 +390,7 @@ class TestEmailFunctions:
             result = await client.call_tool(
                 name="list_attachments", arguments={"email_id": "test_id"}
             )
-            assert len(result) == 0
+            assert len(result.content) == 0
 
 
 class TestDraftFunctions:
@@ -413,8 +413,8 @@ class TestDraftFunctions:
 
         async with Client(mcp) as client:
             result = await client.call_tool(name="list_drafts", arguments={})
-            res_json = json.loads(result[0].text)
-            assert res_json == mock_draft_data[0]
+            res_json = json.loads(result.content[0].text)
+            assert res_json == mock_draft_data
 
     @patch("obot_gmail_mcp.server._get_access_token")
     @patch("obot_gmail_mcp.server.get_client")
@@ -435,7 +435,7 @@ class TestDraftFunctions:
                     "message": "Test message",
                 },
             )
-            res_json = result[0].text
+            res_json = result.content[0].text
             assert "Draft created successfully" in res_json
 
     @patch("obot_gmail_mcp.server._get_access_token")
@@ -451,7 +451,7 @@ class TestDraftFunctions:
             result = await client.call_tool(
                 name="delete_draft", arguments={"draft_id": "test_id"}
             )
-            res_json = result[0].text
+            res_json = result.content[0].text
             assert "deleted successfully" in res_json
 
         mock_service.users().drafts().delete.assert_called_with(
@@ -471,7 +471,7 @@ class TestDraftFunctions:
             result = await client.call_tool(
                 name="send_draft", arguments={"draft_id": "test_id"}
             )
-            res_json = result[0].text
+            res_json = result.content[0].text
             assert "sent successfully" in res_json
 
         mock_service.users().drafts().send.assert_called_with(
@@ -502,7 +502,7 @@ class TestDraftFunctions:
                     "message": "Updated message",
                 },
             )
-            res_json = result[0].text
+            res_json = result.content[0].text
             assert "updated successfully" in res_json
 
 
@@ -526,8 +526,8 @@ class TestLabelFunctions:
 
         async with Client(mcp) as client:
             result = await client.call_tool(name="list_labels", arguments={})
-            res_json = json.loads(result[0].text)
-            assert res_json == mock_label_data[0]
+            res_json = json.loads(result.content[0].text)
+            assert res_json == mock_label_data
 
     @patch("obot_gmail_mcp.server._get_access_token")
     @patch("obot_gmail_mcp.server.get_client")
@@ -548,8 +548,8 @@ class TestLabelFunctions:
             result = await client.call_tool(
                 name="list_labels", arguments={"label_id": "test_label_id"}
             )
-            res_json = json.loads(result[0].text)
-            assert res_json == mock_label_data[0]
+            res_json = json.loads(result.content[0].text)
+            assert res_json == mock_label_data
 
     @patch("obot_gmail_mcp.server._get_access_token")
     @patch("obot_gmail_mcp.server.get_client")
@@ -572,7 +572,7 @@ class TestLabelFunctions:
             result = await client.call_tool(
                 name="create_label", arguments={"label_name": "New Label"}
             )
-            res_json = json.loads(result[0].text)
+            res_json = json.loads(result.content[0].text)
             assert res_json["name"] == "New Label"
 
     @patch("obot_gmail_mcp.server._get_access_token")
@@ -594,7 +594,7 @@ class TestLabelFunctions:
                 name="update_label",
                 arguments={"label_id": "test_id", "label_name": "Updated Label"},
             )
-            res_json = json.loads(result[0].text)
+            res_json = json.loads(result.content[0].text)
             assert res_json["name"] == "Updated Label"
 
     @patch("obot_gmail_mcp.server._get_access_token")
@@ -615,7 +615,7 @@ class TestLabelFunctions:
             result = await client.call_tool(
                 name="delete_label", arguments={"label_id": "test_id"}
             )
-            res_json = result[0].text
+            res_json = result.content[0].text
             assert "deleted successfully" in res_json
 
 
@@ -726,8 +726,8 @@ class TestComplexScenarios:
                 name="list_emails",
                 arguments={"category": "primary", "label_ids": "INBOX"},
             )
-            res_json = result[0].text
-            assert res_json == "Formatted Email"
+            res_json = result.content[0].text
+            assert json.loads(res_json) == ["Formatted Email"]
 
         # Should have made 3 calls to list_messages due to fallback logic
         assert mock_list_messages.call_count == 3
@@ -760,7 +760,7 @@ class TestComplexScenarios:
             result = await client.call_tool(
                 name="read_email", arguments={"email_id": "test_id"}
             )
-            res_json = json.loads(result[0].text)
+            res_json = json.loads(result.content[0].text)
             assert res_json["has_attachment"] == True
             assert "link" in res_json
             assert "mail.google.com" in res_json["link"]
@@ -797,7 +797,7 @@ class TestComplexScenarios:
                 result = await client.call_tool(
                     name="read_email", arguments={"email_subject": "Test Subject"}
                 )
-                res_json = json.loads(result[0].text)
+                res_json = json.loads(result.content[0].text)
                 assert res_json["body"] == "Email body"
 
             # Verify search was called with correct query
@@ -835,7 +835,7 @@ class TestPerformance:
             result = await client.call_tool(
                 name="list_emails", arguments={"max_results": 1000}
             )
-            res_json = json.loads(result[0].text)
+            res_json = json.loads(result.content[0].text)
             assert len(res_json) == 1000
             assert all(email == "Formatted Email" for email in res_json)
 

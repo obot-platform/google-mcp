@@ -36,9 +36,7 @@ GOOGLE_OAUTH_TOKEN = os.getenv("GOOGLE_OAUTH_TOKEN")
 
 mcp = FastMCP(
     name="GmailMCPServer",
-    on_duplicate_tools="error",  # Handle duplicate registrations
-    on_duplicate_resources="warn",
-    on_duplicate_prompts="replace",
+    on_duplicate="error",  # Handle duplicate registrations
 )
 
 
