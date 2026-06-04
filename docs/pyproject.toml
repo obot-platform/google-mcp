@@ -5,7 +5,7 @@ description = "Obot's Google Docs MCP Server"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "fastmcp==2.11.2",
+    "fastmcp==3.2.0",
     "google-api-python-client>=2.172.0",
 ]
 
@@ -16,7 +16,7 @@ obot-google-docs-mcp-stdio = "app.server:stdio_server"
 [dependency-groups]
 dev = [
     "coverage>=7.9.1",
-    "pytest>=8.4.1",
+    "pytest>=9.0.3",
     "pytest-asyncio>=1.0.0",
     "pytest-cov>=6.2.1",
     "ruff>=0.12.10",
