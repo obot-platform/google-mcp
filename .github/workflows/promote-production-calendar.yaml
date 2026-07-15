@@ -1,0 +1,25 @@
+name: Promote google-calendar to production
+
+permissions:
+  packages: write
+
+on:
+  workflow_dispatch:
+
+jobs:
+  promote-production:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: google-calendar-promote-production
+      cancel-in-progress: true
+    steps:
+      - name: Install crane
+        uses: imjasonh/setup-crane@v0.4
+
+      - name: Log in to GitHub Container Registry
+        run: crane auth login ghcr.io -u "${{ github.actor }}" -p "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Promote main image to latest
+        env:
+          IMAGE: ghcr.io/${{ github.repository }}/google-calendar
+        run: crane tag "${IMAGE}:main" latest
