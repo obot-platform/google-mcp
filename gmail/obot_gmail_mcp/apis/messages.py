@@ -168,7 +168,7 @@ def get_thread_with_message_id(service, message_id: str):
         raise ValueError(f"No thread found for message {message_id}")
 
 
-async def create_message_data(
+def create_message_data(
     service,
     to,
     cc,
@@ -223,7 +223,7 @@ async def create_message_data(
     # for filepath in attachments:
     #     try:
     #         # Get the file bytes from the workspace
-    #         wksp_file_path = await prepend_base_path("files", filepath)
+    #         wksp_file_path = prepend_base_path("files", filepath)
     #         file_content = await gptscript_client.read_file_in_workspace(wksp_file_path)
 
     #         # Determine the MIME type and subtype

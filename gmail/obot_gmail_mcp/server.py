@@ -59,7 +59,7 @@ def _get_access_token() -> str:
     name="list_emails",
     exclude_args=["user_timezone"],
 )
-async def list_emails_tool(
+def list_emails_tool(
     max_results: Annotated[
         int, Field(description="Maximum number of emails to return.", ge=1, le=1000, default=50)
     ] = 50,
@@ -319,7 +319,7 @@ def modify_message_labels_tool(
     name="get_current_email_address",
     annotations={"readOnlyHint": True, "destructiveHint": False},
 )
-async def get_current_email_address_tool() -> str:
+def get_current_email_address_tool() -> str:
     """
     Gets the email address of the currently signed in user.
     """
@@ -335,7 +335,7 @@ async def get_current_email_address_tool() -> str:
 @mcp.tool(
     name="create_draft",
 )
-async def create_draft_tool(
+def create_draft_tool(
     to_emails: Annotated[
         str,
         Field(
@@ -374,7 +374,7 @@ async def create_draft_tool(
     reply_all = _parse_str_to_bool(reply_all) if isinstance(reply_all, str) else reply_all
     # att_list = [a.strip() for a in attachments if a.strip()]
     try:
-        draft_obj = await create_message_data(
+        draft_obj = create_message_data(
             service=service,
             to=to_emails,
             cc=cc_emails,
@@ -515,7 +515,7 @@ def send_draft_tool(
 @mcp.tool(
     name="send_email",
 )
-async def send_email_tool(
+def send_email_tool(
     to_emails: Annotated[
         str,
         Field(
@@ -548,7 +548,7 @@ async def send_email_tool(
     service = get_client(access_token)
     # att_list = [a.strip() for a in attachments if a.strip()] if attachments else []
     try:
-        message_obj = await create_message_data(
+        message_obj = create_message_data(
             service=service,
             to=to_emails,
             cc=cc_emails,
@@ -571,7 +571,7 @@ async def send_email_tool(
 @mcp.tool(
     name="update_draft",
 )
-async def update_draft_tool(
+def update_draft_tool(
     draft_id: Annotated[str, Field(description="The ID of the draft email to update.")],
     to_emails: Annotated[
         str,
@@ -611,7 +611,7 @@ async def update_draft_tool(
     reply_all = _parse_str_to_bool(reply_all) if isinstance(reply_all, str) else reply_all
     # att_list = [a.strip() for a in attachments if a.strip()] if attachments else []
     try:
-        draft_response = await update_draft(
+        draft_response = update_draft(
             service=service,
             draft_id=draft_id,
             to=to_emails,

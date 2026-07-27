@@ -47,7 +47,7 @@ def _get_access_token() -> str:
         "readOnlyHint": True,
     },
 )
-async def list_spreadsheets_tool(
+def list_spreadsheets_tool(
     max_results: Annotated[int, Field(description="Maximum number of results to return. default is 10.", ge=1, le=100, default=10)] = 10,
     page_token: Annotated[str | None, Field(description="Token for pagination, pass the nextPageToken from the previous response to get the next page.")] = None,
 ) -> dict:
