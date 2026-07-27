@@ -1,0 +1,18 @@
+
+# Dependabot dependency ownership
+/analytics/pyproject.toml @obot-platform/obot-backend
+/analytics/uv.lock @obot-platform/obot-backend
+/calendar/pyproject.toml @obot-platform/obot-backend
+/calendar/uv.lock @obot-platform/obot-backend
+/docs/pyproject.toml @obot-platform/obot-backend
+/docs/uv.lock @obot-platform/obot-backend
+/drive/pyproject.toml @obot-platform/obot-backend
+/drive/uv.lock @obot-platform/obot-backend
+/gmail/pyproject.toml @obot-platform/obot-backend
+/gmail/uv.lock @obot-platform/obot-backend
+/group/pyproject.toml @obot-platform/obot-backend
+/group/uv.lock @obot-platform/obot-backend
+/search-console/pyproject.toml @obot-platform/obot-backend
+/search-console/uv.lock @obot-platform/obot-backend
+/sheets/pyproject.toml @obot-platform/obot-backend
+/sheets/uv.lock @obot-platform/obot-backend
