@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Obot's google analytics mcp server"
 requires-python = ">=3.13"
 dependencies = [
-    "fastmcp==2.11.2",
+    "fastmcp==3.2.0",
     "httpx>=0.28.1",
 ]
 
@@ -30,7 +30,7 @@ source-exclude = [
 [dependency-groups]
 dev = [
     "coverage>=7.9.1",
-    "pytest>=8.4.0",
+    "pytest>=9.0.3",
     "pytest-asyncio>=1.0.0",
     "pytest-cov>=6.2.1",
     "ruff>=0.12.7",
