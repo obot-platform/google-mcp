@@ -5,7 +5,7 @@ description = "Obot gmail mcp server"
 requires-python = ">=3.13"
 dependencies = [
     "bs4>=0.0.2",
-    "fastmcp>=3.2.0",
+    "fastmcp>=3.4.5",
     "filetype>=1.2.0",
     "google-api-python-client>=2.172.0",
     "pytz>=2025.2",
@@ -19,7 +19,7 @@ obot-gmail-mcp-stdio = "obot_gmail_mcp.server:stdio_server"
 dev = [
     "black>=25.1.0",
     "coverage>=7.9.1",
-    "pytest>=8.4.1",
+    "pytest>=9.1.1",
     "pytest-asyncio>=1.0.0",
     "pytest-cov>=6.2.1",
     "ruff>=0.12.8",

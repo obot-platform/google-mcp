@@ -5,7 +5,7 @@ description = "Obot's google calendar mcp server"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "fastmcp>=3.2.0",
+    "fastmcp>=3.4.5",
     "google>=3.0.0",
     "google-api-python-client>=2.172.0",
     "rfc3339-validator>=0.1.4",
@@ -37,7 +37,7 @@ source-exclude = [
 [dependency-groups]
 dev = [
     "coverage>=7.9.1",
-    "pytest>=9.0.3",
+    "pytest>=9.1.1",
     "pytest-asyncio>=1.0.0",
     "pytest-cov>=6.2.1",
     "ruff>=0.12.7",
