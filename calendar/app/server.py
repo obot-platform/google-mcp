@@ -28,9 +28,7 @@ MCP_PATH = os.getenv("MCP_PATH", "/mcp/google-calendar")
 
 mcp = FastMCP(
     name="GoogleCalendarMCPServer",
-    on_duplicate_tools="error",
-    on_duplicate_resources="warn",
-    on_duplicate_prompts="replace",
+    on_duplicate="error",
     mask_error_details=True,
 )
 

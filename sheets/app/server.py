@@ -20,9 +20,7 @@ MCP_PATH = os.getenv("MCP_PATH", "/mcp/google-sheets")
 
 mcp = FastMCP(
     name="GoogleSheetsMCPServer",
-    on_duplicate_tools="error",  # Handle duplicate registrations
-    on_duplicate_resources="warn",
-    on_duplicate_prompts="replace",
+    on_duplicate="error",  # Handle duplicate registrations
 )
 
 

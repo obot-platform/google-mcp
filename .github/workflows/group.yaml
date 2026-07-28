@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - "group/pyproject.toml"
+      - "group/**"
     branches:
       - main
 

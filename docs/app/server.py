@@ -30,9 +30,7 @@ MCP_PATH = os.getenv("MCP_PATH", "/mcp/google-docs")
 
 mcp = FastMCP(
     name="GoogleDocsMCPServer",
-    on_duplicate_tools="error",
-    on_duplicate_resources="warn",
-    on_duplicate_prompts="replace",
+    on_duplicate="error",
 )
 
 

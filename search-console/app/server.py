@@ -16,9 +16,7 @@ MCP_PATH = os.getenv("MCP_PATH", "/mcp/google-search-console")
 
 mcp = FastMCP(
     name="google_search_console_mcp",
-    on_duplicate_tools="error",
-    on_duplicate_resources="warn",
-    on_duplicate_prompts="replace",
+    on_duplicate="error",
     mask_error_details=True,
 )
 

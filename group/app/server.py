@@ -36,9 +36,7 @@ MCP_PATH = os.getenv("MCP_PATH", "/mcp/google-groups")
 
 mcp = FastMCP(
     name="GoogleGroupsMCPServer",
-    on_duplicate_tools="error",
-    on_duplicate_resources="warn",
-    on_duplicate_prompts="replace",
+    on_duplicate="error",
 )
 
 
