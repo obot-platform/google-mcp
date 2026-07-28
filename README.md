@@ -22,16 +22,16 @@ node --version
 
 All servers use port `9000` by default and expose `/health`. Set `PORT` when running more than one server at once.
 
-| Server | Directory | MCP path | Google API and OAuth scope |
-| --- | --- | --- | --- |
-| Google Analytics | `analytics` | `/mcp/google-analytics` | Google Analytics Admin and Data APIs; `https://www.googleapis.com/auth/analytics.edit` |
-| Google Calendar | `calendar` | `/mcp/google-calendar` | Google Calendar API; `https://www.googleapis.com/auth/calendar` |
-| Google Docs | `docs` | `/mcp/google-docs` | Google Docs and Drive APIs; `https://www.googleapis.com/auth/documents`, `https://www.googleapis.com/auth/drive` |
-| Google Drive | `drive` | `/mcp/google-drive` | Google Drive API; `https://www.googleapis.com/auth/drive` |
-| Gmail | `gmail` | `/mcp/gmail` | Gmail API; `https://mail.google.com/` |
-| Google Groups | `group` | `/mcp/google-groups` | Admin SDK API; `https://www.googleapis.com/auth/admin.directory.group`, `https://www.googleapis.com/auth/admin.directory.group.member`, `https://www.googleapis.com/auth/admin.directory.domain.readonly` |
-| Google Search Console | `search-console` | `/mcp/google-search-console` | Search Console API; `https://www.googleapis.com/auth/webmasters` |
-| Google Sheets | `sheets` | `/mcp/google-sheets` | Google Sheets API; `https://www.googleapis.com/auth/spreadsheets` |
+| Server                | Directory        | MCP path                     | Google API and OAuth scope                                                                                                                                                                                |
+| --------------------- | ---------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Google Analytics      | `analytics`      | `/mcp/google-analytics`      | Google Analytics Admin and Data APIs; `https://www.googleapis.com/auth/analytics.edit`                                                                                                                    |
+| Google Calendar       | `calendar`       | `/mcp/google-calendar`       | Google Calendar API; `https://www.googleapis.com/auth/calendar`                                                                                                                                           |
+| Google Docs           | `docs`           | `/mcp/google-docs`           | Google Docs and Drive APIs; `https://www.googleapis.com/auth/documents`, `https://www.googleapis.com/auth/drive`                                                                                          |
+| Google Drive          | `drive`          | `/mcp/google-drive`          | Google Drive API; `https://www.googleapis.com/auth/drive`                                                                                                                                                 |
+| Gmail                 | `gmail`          | `/mcp/gmail`                 | Gmail API; `https://mail.google.com/`                                                                                                                                                                     |
+| Google Groups         | `group`          | `/mcp/google-groups`         | Admin SDK API; `https://www.googleapis.com/auth/admin.directory.group`, `https://www.googleapis.com/auth/admin.directory.group.member`, `https://www.googleapis.com/auth/admin.directory.domain.readonly` |
+| Google Search Console | `search-console` | `/mcp/google-search-console` | Search Console API; `https://www.googleapis.com/auth/webmasters`                                                                                                                                          |
+| Google Sheets         | `sheets`         | `/mcp/google-sheets`         | Google Sheets API; `https://www.googleapis.com/auth/spreadsheets`                                                                                                                                         |
 
 The Groups server requires a Google Workspace account with the necessary Admin SDK privileges. The other servers require an account authorized for the target Google resources.
 
@@ -50,6 +50,7 @@ Use one Google Cloud project for all following steps.
    ```
 
    The Drive server supports listing, reading, modifying, deleting, sharing, permission management, and shared-drive management, so it requires full Drive access.
+
 4. Create a `Desktop app` client in [OAuth clients](https://console.cloud.google.com/auth/clients) and download its client JSON.
 
 Keep the downloaded JSON outside this repository. It contains OAuth client credentials and must not be committed.
@@ -118,7 +119,7 @@ curl http://localhost:9000/health
 Expected response:
 
 ```json
-{"status":"healthy"}
+{ "status": "healthy" }
 ```
 
 Do not add a trailing slash to the local MCP URL.
@@ -217,28 +218,3 @@ npx -y @modelcontextprotocol/inspector@2.0.0 \
 ```
 
 Prefer the direct forwarded-token setup for initial testing. The Compose file uses the mutable `mcp-oauth-proxy:master` image and an older proxy configuration style, which can cause unrelated compatibility failures.
-
-## Troubleshooting
-
-### `This app is blocked`
-
-- Include `--client-id-file` in the login command; the default `gcloud` OAuth client cannot request Drive scope.
-- Confirm the account is a test user or eligible for the internal audience.
-- For managed Google Workspace accounts, an administrator might need to trust the OAuth client under `Security > Access and data control > API controls > Manage Third-Party App Access`.
-- Test with a personal Google account added as a test user to isolate Workspace policy from application configuration.
-
-### `No access token found in headers`
-
-Reconnect Inspector using the `X-Forwarded-Access-Token` argument above. `GOOGLE_OAUTH_TOKEN` currently has no effect.
-
-### Google API Reports Insufficient Scopes
-
-Repeat `gcloud auth application-default login` with the custom client and exact scope or scopes for the server being tested. This overwrites existing Application Default Credentials.
-
-### Local Server Fails During Import
-
-If `FastMCP()` reports that it no longer accepts `on_duplicate_tools`, apply the compatibility fix in [`HANDOFF.md`](HANDOFF.md).
-
-### Local MCP Endpoint Returns 404
-
-Use exactly `http://localhost:9000/mcp/google-drive`, without a trailing slash, and first confirm that the health endpoint succeeds.
