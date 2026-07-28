@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - "search-console/pyproject.toml"
+      - "search-console/**"
     branches:
       - main
 
