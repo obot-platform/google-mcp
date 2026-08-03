@@ -124,7 +124,7 @@ def extract_message_headers(message, user_tz: str):
     return subject, sender, to, cc, bcc, date, label_ids
 
 
-async def prepend_base_path(base_path: str, file_path: str):
+def prepend_base_path(base_path: str, file_path: str):
     """
     Prepend a base path to a file path if it's not already rooted in the base path.
 

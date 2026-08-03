@@ -4,7 +4,7 @@ from .helpers import extract_message_headers
 from .messages import create_message_data
 
 
-async def list_drafts(service, max_results=None):
+def list_drafts(service, max_results=None):
     all_drafts = []
     next_page_token = None
     try:
@@ -63,7 +63,7 @@ def display_list_drafts(service, drafts: list):
         print(draft_str)
 
 
-async def update_draft(
+def update_draft(
     service,
     draft_id,
     to,
@@ -76,7 +76,7 @@ async def update_draft(
     reply_all=False,
 ):
     try:
-        message = await create_message_data(
+        message = create_message_data(
             service=service,
             to=to,
             cc=cc,
