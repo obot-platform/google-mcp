@@ -4,6 +4,7 @@ import uuid
 from typing import Annotated, Literal, Union
 
 from fastmcp import FastMCP
+from fastmcp.dependencies import Depends
 from fastmcp.exceptions import ToolError
 from fastmcp.server.dependencies import get_http_headers
 from googleapiclient.errors import HttpError
@@ -66,6 +67,10 @@ def _get_access_token(headers: dict[str, str] | None = None) -> str:
             "No access token found in headers, available headers: " + str(headers)
         )
     return access_token
+
+
+def _get_user_timezone() -> str:
+    return "UTC"
 
 
 def _is_gmail_quota_error(error: HttpError) -> bool:
@@ -145,10 +150,7 @@ def _format_messages(service, messages: list, user_timezone: str, trace_id: str)
     return formatted_response
 
 
-@mcp.tool(
-    name="list_emails",
-    exclude_args=["user_timezone"],
-)
+@mcp.tool(name="list_emails")
 def list_emails_tool(
     max_results: Annotated[
         int,
@@ -188,7 +190,7 @@ def list_emails_tool(
             default="",
         ),
     ] = "",
-    user_timezone: str = "UTC",
+    user_timezone: str = Depends(_get_user_timezone),
 ) -> Union[list[str], str]:
     """
     List emails in the user's gmail account.
@@ -617,10 +619,7 @@ def delete_email_tool(
         raise ToolError(str(err))
 
 
-@mcp.tool(
-    name="read_email",
-    exclude_args=["user_timezone"],
-)
+@mcp.tool(name="read_email")
 def read_email_tool(
     email_id: Annotated[
         str | None,
@@ -636,7 +635,7 @@ def read_email_tool(
             default=None,
         ),
     ] = None,
-    user_timezone: str = "UTC",
+    user_timezone: str = Depends(_get_user_timezone),
 ) -> dict:
     """
     Read an email or draft from the user's Gmail account.

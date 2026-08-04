@@ -153,6 +153,15 @@ class TestMCPServer:
         for tool in expected_tools:
             assert tool in tool_names
 
+        tools_by_name = {tool.name: tool for tool in tools}
+        assert (
+            "user_timezone"
+            not in tools_by_name["list_emails"].inputSchema["properties"]
+        )
+        assert (
+            "user_timezone" not in tools_by_name["read_email"].inputSchema["properties"]
+        )
+
 
 # Unit Tests - Testing Individual Functions
 class TestEmailFunctions:
