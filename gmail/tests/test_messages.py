@@ -3,7 +3,26 @@ from unittest.mock import MagicMock, Mock, call
 import pytest
 from googleapiclient.errors import HttpError
 
-from obot_gmail_mcp.apis.messages import list_messages, modify_message_labels
+from obot_gmail_mcp.apis.messages import (
+    list_messages,
+    message_to_string,
+    modify_message_labels,
+)
+
+
+def test_message_to_string_defaults_to_utc():
+    service = MagicMock()
+    service.users.return_value.messages.return_value.get.return_value.execute.return_value = {
+        "id": "message1",
+        "internalDate": "0",
+        "labelIds": [],
+        "payload": {"headers": []},
+    }
+
+    message_id, formatted = message_to_string(service, {"id": "message1"})
+
+    assert message_id == "message1"
+    assert "Received: 1970-01-01 00:00:00 UTC" in formatted
 
 
 def test_modify_thread_labels_reports_added_and_removed_labels():

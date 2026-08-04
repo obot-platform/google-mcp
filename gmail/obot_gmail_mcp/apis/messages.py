@@ -349,7 +349,7 @@ def list_messages(
 def message_to_string(
     service,
     message,
-    user_tz: str,
+    user_tz: str = "UTC",
     timing: dict[str, float] | None = None,
 ) -> tuple[str, str]:
     request_started = time.perf_counter()
