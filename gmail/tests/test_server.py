@@ -7,6 +7,20 @@ import json
 
 from obot_gmail_mcp.server import mcp
 
+
+def gmail_http_error(status: int, reason: str, message: str) -> HttpError:
+    content = json.dumps(
+        {
+            "error": {
+                "code": status,
+                "message": message,
+                "errors": [{"reason": reason, "message": message}],
+            }
+        }
+    ).encode()
+    return HttpError(Mock(status=status, reason=message), content)
+
+
 # Configure pytest for async support
 pytestmark = pytest.mark.asyncio
 
@@ -621,6 +635,80 @@ class TestLabelFunctions:
 
 class TestErrorHandling:
     """Test error handling across different scenarios"""
+
+    @patch("obot_gmail_mcp.server._get_access_token")
+    @patch("obot_gmail_mcp.server.get_client")
+    @patch("obot_gmail_mcp.server.list_messages")
+    async def test_list_emails_reports_quota_error_while_listing_ids(
+        self, mock_list_messages, mock_get_client, mock_get_access_token
+    ):
+        mock_get_access_token.return_value = "fake_token"
+        mock_list_messages.side_effect = gmail_http_error(
+            403, "userRateLimitExceeded", "User-rate limit exceeded"
+        )
+
+        with pytest.raises(
+            ToolError,
+            match=(
+                "Gmail API quota exceeded while listing emails. "
+                "Try again later or request fewer emails."
+            ),
+        ):
+            async with Client(mcp) as client:
+                await client.call_tool(name="list_emails", arguments={})
+
+    @patch("obot_gmail_mcp.server._get_access_token")
+    @patch("obot_gmail_mcp.server.get_client")
+    @patch("obot_gmail_mcp.server.list_messages")
+    @patch("obot_gmail_mcp.server.message_to_string")
+    async def test_list_emails_reports_quota_error_while_loading_metadata(
+        self,
+        mock_message_to_string,
+        mock_list_messages,
+        mock_get_client,
+        mock_get_access_token,
+        caplog,
+    ):
+        mock_get_access_token.return_value = "fake_token"
+        mock_list_messages.return_value = [{"id": "email1"}, {"id": "email2"}]
+        mock_message_to_string.side_effect = [
+            ("email1", "Formatted Email"),
+            gmail_http_error(
+                429, "rateLimitExceeded", "Too many concurrent requests for user"
+            ),
+        ]
+
+        with pytest.raises(
+            ToolError,
+            match=(
+                "Gmail API quota exceeded while listing emails. "
+                "Try again later or request fewer emails."
+            ),
+        ):
+            async with Client(mcp) as client:
+                await client.call_tool(name="list_emails", arguments={})
+
+        assert "phase=messages.get.total requested=2 completed=1" in caplog.text
+        assert "outcome=error" in caplog.text
+
+    @patch("obot_gmail_mcp.server._get_access_token")
+    @patch("obot_gmail_mcp.server.get_client")
+    @patch("obot_gmail_mcp.server.list_messages")
+    async def test_list_emails_does_not_mislabel_non_quota_http_errors(
+        self, mock_list_messages, mock_get_client, mock_get_access_token
+    ):
+        mock_get_access_token.return_value = "fake_token"
+        mock_list_messages.side_effect = gmail_http_error(
+            403, "forbidden", "Insufficient permissions"
+        )
+
+        with pytest.raises(
+            ToolError, match="Gmail API error while listing emails"
+        ) as exc_info:
+            async with Client(mcp) as client:
+                await client.call_tool(name="list_emails", arguments={})
+
+        assert "quota exceeded" not in str(exc_info.value).lower()
 
     @patch("obot_gmail_mcp.server._get_access_token")
     @patch("obot_gmail_mcp.server.get_client")

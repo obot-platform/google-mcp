@@ -1,4 +1,6 @@
 import os
+import time
+import uuid
 from typing import Annotated, Literal, Union
 
 from fastmcp import FastMCP
@@ -10,7 +12,12 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from .apis.drafts import list_drafts, update_draft
-from .apis.helpers import NON_PRIMARY_CATEGORIES_MAP, get_client, parse_label_ids
+from .apis.helpers import (
+    NON_PRIMARY_CATEGORIES_MAP,
+    get_client,
+    parse_label_ids,
+    setup_logger,
+)
 from .apis.labels import (
     create_label,
     delete_label,
@@ -33,6 +40,12 @@ from .apis.messages import (
 PORT = int(os.getenv("PORT", 9000))
 MCP_PATH = os.getenv("MCP_PATH", "/mcp/gmail")
 GOOGLE_OAUTH_TOKEN = os.getenv("GOOGLE_OAUTH_TOKEN")
+logger = setup_logger(__name__)
+
+GMAIL_QUOTA_ERROR_MESSAGE = (
+    "Gmail API quota exceeded while listing emails. "
+    "Try again later or request fewer emails."
+)
 
 mcp = FastMCP(
     name="GmailMCPServer",
@@ -45,8 +58,8 @@ async def health_check(request: Request):
     return JSONResponse({"status": "healthy"})
 
 
-def _get_access_token() -> str:
-    headers = get_http_headers()
+def _get_access_token(headers: dict[str, str] | None = None) -> str:
+    headers = headers or get_http_headers()
     access_token = headers.get("x-forwarded-access-token", None)
     if not access_token:
         raise ToolError(
@@ -55,25 +68,126 @@ def _get_access_token() -> str:
     return access_token
 
 
+def _is_gmail_quota_error(error: HttpError) -> bool:
+    if error.status_code not in (403, 429):
+        return False
+
+    error_text = " ".join(
+        (error.reason, str(error.error_details), error.content.decode(errors="replace"))
+    ).lower()
+    return any(
+        marker in error_text
+        for marker in (
+            "ratelimitexceeded",
+            "userratelimitexceeded",
+            "dailylimitexceeded",
+            "quotaexceeded",
+            "quota exceeded",
+            "rate limit exceeded",
+            "too many concurrent requests",
+        )
+    )
+
+
+def _format_messages(service, messages: list, user_timezone: str, trace_id: str):
+    formatted_response = []
+    timing = {"api_seconds": 0.0, "format_seconds": 0.0}
+    total_started = time.perf_counter()
+    outcome = "success"
+
+    try:
+        for chunk_start in range(0, len(messages), 100):
+            chunk_api_started = timing["api_seconds"]
+            chunk_format_started = timing["format_seconds"]
+            chunk_started = time.perf_counter()
+            chunk = messages[chunk_start : chunk_start + 100]
+            chunk_outcome = "success"
+            try:
+                for message in chunk:
+                    formatted_response.append(
+                        message_to_string(
+                            service, message, user_timezone, timing=timing
+                        )[1]
+                    )
+            except Exception:
+                chunk_outcome = "error"
+                raise
+            finally:
+                logger.info(
+                    "Gmail timing trace_id=%s phase=messages.get.chunk chunk=%d "
+                    "size=%d completed=%d api_ms=%.3f format_ms=%.3f "
+                    "total_ms=%.3f outcome=%s",
+                    trace_id,
+                    chunk_start // 100 + 1,
+                    len(chunk),
+                    len(formatted_response) - chunk_start,
+                    (timing["api_seconds"] - chunk_api_started) * 1000,
+                    (timing["format_seconds"] - chunk_format_started) * 1000,
+                    (time.perf_counter() - chunk_started) * 1000,
+                    chunk_outcome,
+                )
+    except Exception:
+        outcome = "error"
+        raise
+    finally:
+        logger.info(
+            "Gmail timing trace_id=%s phase=messages.get.total requested=%d "
+            "completed=%d api_ms=%.3f format_ms=%.3f total_ms=%.3f outcome=%s",
+            trace_id,
+            len(messages),
+            len(formatted_response),
+            timing["api_seconds"] * 1000,
+            timing["format_seconds"] * 1000,
+            (time.perf_counter() - total_started) * 1000,
+            outcome,
+        )
+
+    return formatted_response
+
+
 @mcp.tool(
     name="list_emails",
     exclude_args=["user_timezone"],
 )
 def list_emails_tool(
     max_results: Annotated[
-        int, Field(description="Maximum number of emails to return.", ge=1, le=1000, default=50)
+        int,
+        Field(
+            description="Maximum number of emails to return.", ge=1, le=1000, default=50
+        ),
     ] = 50,
     label_ids: Annotated[
         str | None,
-        Field(description="Comma-separated list of label IDs to filter emails by.", default=None),
+        Field(
+            description="Comma-separated list of label IDs to filter emails by.",
+            default=None,
+        ),
     ] = None,
     category: Annotated[
         Literal["primary", "social", "promotions", "updates", "forums"],
         Field(description="Category to filter emails by.", default="primary"),
     ] = "primary",
-    after: Annotated[str, Field(description="To only return emails received strictly **after** this timestamp. Format: `YYYY-MM-DDTHH:MM:SS±HH:MM` (ISO 8601 format with timezone offset)", default="")] = "",
-    before: Annotated[str, Field(description="To only return emails received strictly **before** this timestamp. Format: `YYYY-MM-DDTHH:MM:SS±HH:MM` (ISO 8601 format with timezone offset)", default="")] = "",
-    query: Annotated[str, Field(description="Search query in Gmail search syntax (e.g., 'from:someuser@example.com rfc822msgid:<somemsgid@example.com> is:unread'). Don't use `before` or `after` in the query. Prefer using `label_ids` and `category` instead. of adding them to the query.", default="")] = "",
+    after: Annotated[
+        str,
+        Field(
+            description="To only return emails received strictly **after** this timestamp. Format: `YYYY-MM-DDTHH:MM:SS±HH:MM` (ISO 8601 format with timezone offset)",
+            default="",
+        ),
+    ] = "",
+    before: Annotated[
+        str,
+        Field(
+            description="To only return emails received strictly **before** this timestamp. Format: `YYYY-MM-DDTHH:MM:SS±HH:MM` (ISO 8601 format with timezone offset)",
+            default="",
+        ),
+    ] = "",
+    query: Annotated[
+        str,
+        Field(
+            description="Search query in Gmail search syntax (e.g., 'from:someuser@example.com rfc822msgid:<somemsgid@example.com> is:unread'). Don't use `before` or `after` in the query. Prefer using `label_ids` and `category` instead. of adding them to the query.",
+            default="",
+        ),
+    ] = "",
     user_timezone: str = "UTC",
 ) -> Union[list[str], str]:
     """
@@ -82,66 +196,105 @@ def list_emails_tool(
     Otherwise, list emails matching the given query from all labels.
     Supports filtering by labels, category, and query.
     """
-    access_token = _get_access_token()
-    if "after:" in query or "before:" in query:
-        raise ValueError(
-            "Error: Please use the parameters `after` and `before` instead of having them in the `query`."
+    headers = get_http_headers()
+    trace_id = headers.get("x-cloud-trace-context", "").split("/", 1)[0]
+    trace_id = trace_id or uuid.uuid4().hex[:12]
+    tool_started = time.perf_counter()
+    outcome = "success"
+    try:
+        access_token = _get_access_token(headers)
+        if "after:" in query or "before:" in query:
+            raise ValueError(
+                "Error: Please use the parameters `after` and `before` instead of having them in the `query`."
+            )
+        default_inbox = "INBOX"
+        if query != "":
+            default_inbox = ""  # if query is not empty, don't set inbox as default
+        labels = label_ids or default_inbox
+        label_ids = parse_label_ids(labels)
+
+        main_query = query
+        is_primary_category = False
+        if any(
+            label.upper() == "ALL" for label in label_ids
+        ):  # check if ALL is in the label_ids
+            label_ids = []
+        elif "INBOX" in label_ids:
+            if category in NON_PRIMARY_CATEGORIES_MAP:
+                label_ids.append(
+                    NON_PRIMARY_CATEGORIES_MAP[category]
+                )  # we use the internal category names for non-primary categories
+            else:  # handle primary categories separately. use query to mimic gmail UI behavior
+                main_query = f"{query} category:{category.lower()}"
+                is_primary_category = True
+
+        client_started = time.perf_counter()
+        service = get_client(access_token)
+        logger.info(
+            "Gmail timing trace_id=%s phase=get_client elapsed_ms=%.3f outcome=success",
+            trace_id,
+            (time.perf_counter() - client_started) * 1000,
         )
-    default_inbox = "INBOX"
-    if query != "":
-        default_inbox = ""  # if query is not empty, don't set inbox as default
-    labels = label_ids or default_inbox
-    label_ids = parse_label_ids(labels)
+        response = list_messages(
+            service,
+            main_query,
+            label_ids,
+            max_results,
+            after,
+            before,
+            trace_id=trace_id,
+        )
+        if len(response) > 0:
+            return _format_messages(service, response, user_timezone, trace_id)
 
-    main_query = query
-    is_primary_category = False
-    if any(
-        label.upper() == "ALL" for label in label_ids
-    ):  # check if ALL is in the label_ids
-        label_ids = []
-    elif "INBOX" in label_ids:
-        if category in NON_PRIMARY_CATEGORIES_MAP:
-            label_ids.append(
-                NON_PRIMARY_CATEGORIES_MAP[category]
-            )  # we use the internal category names for non-primary categories
-        else:  # handle primary categories separately. use query to mimic gmail UI behavior
-            main_query = f"{query} category:{category.lower()}"
-            is_primary_category = True
+        # If not primary category or no results found, we can exit early
+        if not is_primary_category:
+            return "No emails found"
 
-    service = get_client(access_token)
-    response = list_messages(service, main_query, label_ids, max_results, after, before)
-    if len(response) > 0:
-        formatted_response = []
-        for message in response:
-            formatted_response.append(
-                message_to_string(service, message, user_timezone)[1]
+        # For primary category, ESTIMATE if the feature is enabled
+        estimate_response = list_messages(
+            service,
+            "category:primary",
+            ["INBOX"],
+            10,
+            "",
+            "",
+            trace_id=trace_id,
+        )
+        if len(estimate_response) > 0:
+            return "No emails found"
+
+        # If categories aren't enabled, try without category filter
+        no_category_response = list_messages(
+            service,
+            query,
+            label_ids,
+            max_results,
+            after,
+            before,
+            trace_id=trace_id,
+        )
+        if len(no_category_response) > 0:
+            return _format_messages(
+                service, no_category_response, user_timezone, trace_id
             )
-        return formatted_response
 
-    # If not primary category or no results found, we can exit early
-    if not is_primary_category:
         return "No emails found"
-
-    # For primary category, ESTIMATE if the feature is enabled
-    estimate_response = list_messages(
-        service, "category:primary", ["INBOX"], 10, "", ""
-    )
-    if len(estimate_response) > 0:
-        return "No emails found"
-
-    # If categories aren't enabled, try without category filter
-    no_category_response = list_messages(
-        service, query, label_ids, max_results, after, before
-    )
-    if len(no_category_response) > 0:
-        formatted_response = []
-        for message in no_category_response:
-            formatted_response.append(
-                message_to_string(service, message, user_timezone)[1]
-            )
-        return formatted_response
-
-    return "No emails found"
+    except HttpError as error:
+        outcome = "error"
+        if _is_gmail_quota_error(error):
+            raise ToolError(GMAIL_QUOTA_ERROR_MESSAGE) from error
+        raise ToolError(f"Gmail API error while listing emails: {error}") from error
+    except Exception:
+        outcome = "error"
+        raise
+    finally:
+        logger.info(
+            "Gmail timing trace_id=%s phase=list_emails.total elapsed_ms=%.3f outcome=%s",
+            trace_id,
+            (time.perf_counter() - tool_started) * 1000,
+            outcome,
+        )
 
 
 @mcp.tool(
@@ -149,7 +302,10 @@ def list_emails_tool(
 )
 def list_drafts_tool(
     max_results: Annotated[
-        int, Field(description="Maximum number of drafts to return.", ge=1, le=20, default=10)
+        int,
+        Field(
+            description="Maximum number of drafts to return.", ge=1, le=20, default=10
+        ),
     ] = 10,
 ) -> list:
     """
@@ -220,10 +376,12 @@ def update_label_tool(
         str | None, Field(description="New name for the label", default=None)
     ] = None,
     label_list_visibility: Annotated[
-        Literal["labelShow", "labelHide", "labelShowIfUnread"] | None, Field(description="Label list visibility", default=None)
+        Literal["labelShow", "labelHide", "labelShowIfUnread"] | None,
+        Field(description="Label list visibility", default=None),
     ] = None,
     message_list_visibility: Annotated[
-        Literal["show", "hide"] | None, Field(description="Message list visibility", default=None)
+        Literal["show", "hide"] | None,
+        Field(description="Message list visibility", default=None),
     ] = None,
 ) -> dict:
     """
@@ -260,6 +418,7 @@ def _parse_str_to_bool(value: str) -> bool:
     else:
         raise ValueError(f"Invalid boolean value: {value}")
 
+
 @mcp.tool(
     name="modify_message_labels",
 )
@@ -274,19 +433,24 @@ def modify_message_labels_tool(
         list[str] | None, Field(description="List of label IDs to remove", default=None)
     ] = None,
     archive: Annotated[
-        bool | str | None, Field(description="Whether to archive the message", default=None)
+        bool | str | None,
+        Field(description="Whether to archive the message", default=None),
     ] = None,
     mark_as_read: Annotated[
-        bool | str | None, Field(description="Whether to mark the message as read", default=None)
+        bool | str | None,
+        Field(description="Whether to mark the message as read", default=None),
     ] = None,
     mark_as_starred: Annotated[
-        bool | str | None, Field(description="Whether to mark the message as starred", default=None)
+        bool | str | None,
+        Field(description="Whether to mark the message as starred", default=None),
     ] = None,
     mark_as_important: Annotated[
-        bool | str | None, Field(description="Whether to mark the message as important", default=None)
+        bool | str | None,
+        Field(description="Whether to mark the message as important", default=None),
     ] = None,
     apply_action_to_thread: Annotated[
-        bool | str, Field(description="Whether to apply action to the whole thread", default=False)
+        bool | str,
+        Field(description="Whether to apply action to the whole thread", default=False),
     ] = False,
 ) -> dict:
     """
@@ -297,10 +461,26 @@ def modify_message_labels_tool(
     add_labels = parse_label_ids(add_label_ids) if add_label_ids else None
     remove_labels = parse_label_ids(remove_label_ids) if remove_label_ids else None
     archive = _parse_str_to_bool(archive) if isinstance(archive, str) else archive
-    mark_as_read = _parse_str_to_bool(mark_as_read) if isinstance(mark_as_read, str) else mark_as_read
-    mark_as_starred = _parse_str_to_bool(mark_as_starred) if isinstance(mark_as_starred, str) else mark_as_starred
-    mark_as_important = _parse_str_to_bool(mark_as_important) if isinstance(mark_as_important, str) else mark_as_important
-    apply_action_to_thread = _parse_str_to_bool(apply_action_to_thread) if isinstance(apply_action_to_thread, str) else (apply_action_to_thread if apply_action_to_thread is not None else False)
+    mark_as_read = (
+        _parse_str_to_bool(mark_as_read)
+        if isinstance(mark_as_read, str)
+        else mark_as_read
+    )
+    mark_as_starred = (
+        _parse_str_to_bool(mark_as_starred)
+        if isinstance(mark_as_starred, str)
+        else mark_as_starred
+    )
+    mark_as_important = (
+        _parse_str_to_bool(mark_as_important)
+        if isinstance(mark_as_important, str)
+        else mark_as_important
+    )
+    apply_action_to_thread = (
+        _parse_str_to_bool(apply_action_to_thread)
+        if isinstance(apply_action_to_thread, str)
+        else (apply_action_to_thread if apply_action_to_thread is not None else False)
+    )
     res = modify_message_labels(
         service,
         email_id,
@@ -348,14 +528,14 @@ def create_draft_tool(
         str | None,
         Field(
             description="Comma-separated list of email addresses to cc the email to",
-            default=None
+            default=None,
         ),
     ] = None,
     bcc_emails: Annotated[
         str | None,
         Field(
             description="Comma-separated list of email addresses to bcc the email to",
-            default=None
+            default=None,
         ),
     ] = None,
     reply_to_email_id: Annotated[
@@ -371,7 +551,9 @@ def create_draft_tool(
     """
     access_token = _get_access_token()
     service = get_client(access_token)
-    reply_all = _parse_str_to_bool(reply_all) if isinstance(reply_all, str) else reply_all
+    reply_all = (
+        _parse_str_to_bool(reply_all) if isinstance(reply_all, str) else reply_all
+    )
     # att_list = [a.strip() for a in attachments if a.strip()]
     try:
         draft_obj = create_message_data(
@@ -444,14 +626,14 @@ def read_email_tool(
         str | None,
         Field(
             description="Email or Draft ID to read (Optional: If not provided, email_subject is required)",
-            default=None
+            default=None,
         ),
     ] = None,
     email_subject: Annotated[
         str | None,
         Field(
             description="Email subject to read (Optional: If not provided, email_id is required)",
-            default=None
+            default=None,
         ),
     ] = None,
     user_timezone: str = "UTC",
@@ -528,14 +710,14 @@ def send_email_tool(
         str | None,
         Field(
             description="Comma-separated list of email addresses to cc the email to (Optional)",
-            default=None
+            default=None,
         ),
     ] = None,
     bcc_emails: Annotated[
         str | None,
         Field(
             description="Comma-separated list of email addresses to bcc the email to (Optional)",
-            default=None
+            default=None,
         ),
     ] = None,
     # attachments: Annotated[list[str], Field(description="List of workspace file paths to attach to the email (Optional)")] = None, # not supported yet till workspace is implemented
@@ -585,14 +767,14 @@ def update_draft_tool(
         str | None,
         Field(
             description="Comma-separated list of email addresses to cc the email to",
-            default=None
+            default=None,
         ),
     ] = None,
     bcc_emails: Annotated[
         str | None,
         Field(
             description="Comma-separated list of email addresses to bcc the email to",
-            default=None
+            default=None,
         ),
     ] = None,
     reply_to_email_id: Annotated[
@@ -608,7 +790,9 @@ def update_draft_tool(
     """
     access_token = _get_access_token()
     service = get_client(access_token)
-    reply_all = _parse_str_to_bool(reply_all) if isinstance(reply_all, str) else reply_all
+    reply_all = (
+        _parse_str_to_bool(reply_all) if isinstance(reply_all, str) else reply_all
+    )
     # att_list = [a.strip() for a in attachments if a.strip()] if attachments else []
     try:
         draft_response = update_draft(
