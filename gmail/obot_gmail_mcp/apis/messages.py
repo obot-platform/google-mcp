@@ -272,6 +272,8 @@ def list_messages(
     try:
         while True:
             remaining = None if max_results is None else max_results - len(all_messages)
+            if remaining is not None and remaining <= 0:
+                break
             page_size = 500 if remaining is None else min(500, remaining)
             if next_page_token:
                 request = (

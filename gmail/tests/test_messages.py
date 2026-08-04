@@ -43,6 +43,16 @@ def test_list_messages_requests_only_the_requested_results():
     )
 
 
+def test_list_messages_with_zero_results_does_not_call_gmail():
+    service = MagicMock()
+    messages_api = service.users.return_value.messages.return_value
+
+    messages = list_messages(service, "query", ["INBOX"], max_results=0)
+
+    assert messages == []
+    messages_api.list.assert_not_called()
+
+
 def test_list_messages_uses_two_500_result_pages_for_1000_results():
     service = MagicMock()
     messages_api = service.users.return_value.messages.return_value
