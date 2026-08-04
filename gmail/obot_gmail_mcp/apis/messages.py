@@ -127,10 +127,8 @@ def modify_message_labels(
                 f"Error applying action to thread for message {message_id}: {e}"
             )
 
-        applied_actions = (
-            f"Added Labels: {add_labels} "
-            if add_labels
-            else "" + f"Removed Labels: {remove_labels}" if remove_labels else ""
+        applied_actions = (f"Added Labels: {add_labels} " if add_labels else "") + (
+            f"Removed Labels: {remove_labels}" if remove_labels else ""
         )
         response = f"Successfully applied actions:\n{applied_actions}\nto thread {thread_id} with {len(message_ids)} messages."
         return response

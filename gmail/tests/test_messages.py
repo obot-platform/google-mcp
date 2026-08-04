@@ -3,7 +3,29 @@ from unittest.mock import MagicMock, Mock, call
 import pytest
 from googleapiclient.errors import HttpError
 
-from obot_gmail_mcp.apis.messages import list_messages
+from obot_gmail_mcp.apis.messages import list_messages, modify_message_labels
+
+
+def test_modify_thread_labels_reports_added_and_removed_labels():
+    service = MagicMock()
+    service.users.return_value.messages.return_value.get.return_value.execute.return_value = {
+        "threadId": "thread1"
+    }
+    service.users.return_value.threads.return_value.get.return_value.execute.return_value = {
+        "id": "thread1",
+        "messages": [{"id": "message1"}, {"id": "message2"}],
+    }
+
+    result = modify_message_labels(
+        service,
+        "message1",
+        add_labels=["STARRED"],
+        remove_labels=["UNREAD"],
+        apply_action_to_thread=True,
+    )
+
+    assert "Added Labels: {'STARRED'}" in result
+    assert "Removed Labels: {'UNREAD'}" in result
 
 
 def test_list_messages_requests_only_the_requested_results():
