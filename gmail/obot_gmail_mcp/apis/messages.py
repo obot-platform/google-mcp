@@ -1,4 +1,5 @@
 import base64
+import time
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -126,12 +127,8 @@ def modify_message_labels(
                 f"Error applying action to thread for message {message_id}: {e}"
             )
 
-        applied_actions = (
-            f"Added Labels: {add_labels} "
-            if add_labels
-            else "" + f"Removed Labels: {remove_labels}"
-            if remove_labels
-            else ""
+        applied_actions = (f"Added Labels: {add_labels} " if add_labels else "") + (
+            f"Removed Labels: {remove_labels}" if remove_labels else ""
         )
         response = f"Successfully applied actions:\n{applied_actions}\nto thread {thread_id} with {len(message_ids)} messages."
         return response
@@ -254,10 +251,19 @@ def create_message_data(
 
 
 def list_messages(
-    service, query, labels, max_results=100, after=None, before=None
+    service,
+    query,
+    labels,
+    max_results: int | None = 100,
+    after=None,
+    before=None,
+    trace_id: str = "",
 ) -> list:
     all_messages = []
     next_page_token = None
+    page_count = 0
+    api_seconds = 0.0
+    total_started = time.perf_counter()
     if after:
         query = f"after:{format_query_timestamp(after)} {query}"
     if before:
@@ -265,8 +271,12 @@ def list_messages(
     logger.info(f"Query: {query}\nlabels: {labels}")  # log query to server logs
     try:
         while True:
+            remaining = None if max_results is None else max_results - len(all_messages)
+            if remaining is not None and remaining <= 0:
+                break
+            page_size = 500 if remaining is None else min(500, remaining)
             if next_page_token:
-                results = (
+                request = (
                     service.users()
                     .messages()
                     .list(
@@ -274,50 +284,97 @@ def list_messages(
                         q=query,
                         labelIds=labels,
                         pageToken=next_page_token,
-                        maxResults=10,
+                        maxResults=page_size,
                     )
-                    .execute()
                 )
             else:
-                results = (
+                request = (
                     service.users()
                     .messages()
-                    .list(userId="me", q=query, labelIds=labels, maxResults=10)
-                    .execute()
+                    .list(userId="me", q=query, labelIds=labels, maxResults=page_size)
                 )
+            page_count += 1
+            request_started = time.perf_counter()
+            try:
+                results = request.execute()
+            finally:
+                api_seconds += time.perf_counter() - request_started
             messages = results.get("messages", [])
             if not messages:
                 break
 
-            all_messages.extend(messages)
+            all_messages.extend(messages[:remaining])
             if max_results is not None and len(all_messages) >= max_results:
                 break
 
             next_page_token = results.get("nextPageToken")
             if not next_page_token:
                 break
-    except HttpError as err:
-        raise Exception(f"Error listing messages: {err}")
+    except HttpError:
+        logger.info(
+            "Gmail timing trace_id=%s phase=messages.list pages=%d returned=%d "
+            "api_ms=%.3f total_ms=%.3f outcome=error",
+            trace_id,
+            page_count,
+            len(all_messages),
+            api_seconds * 1000,
+            (time.perf_counter() - total_started) * 1000,
+        )
+        raise
     except Exception as e:
+        logger.info(
+            "Gmail timing trace_id=%s phase=messages.list pages=%d returned=%d "
+            "api_ms=%.3f total_ms=%.3f outcome=error",
+            trace_id,
+            page_count,
+            len(all_messages),
+            api_seconds * 1000,
+            (time.perf_counter() - total_started) * 1000,
+        )
         logger.error(f"Error listing messages: {e}")
         raise Exception(f"Error listing messages: {e}")
 
+    logger.info(
+        "Gmail timing trace_id=%s phase=messages.list pages=%d returned=%d "
+        "api_ms=%.3f total_ms=%.3f outcome=success",
+        trace_id,
+        page_count,
+        len(all_messages),
+        api_seconds * 1000,
+        (time.perf_counter() - total_started) * 1000,
+    )
     return all_messages
 
 
-def message_to_string(service, message, user_tz: str) -> tuple[str, str]:
-    msg = (
-        service.users()
-        .messages()
-        .get(
-            userId="me",
-            id=message["id"],
-            format="metadata",
-            metadataHeaders=["From", "Subject"],
+def message_to_string(
+    service,
+    message,
+    user_tz: str = "UTC",
+    timing: dict[str, float] | None = None,
+) -> tuple[str, str]:
+    request_started = time.perf_counter()
+    try:
+        msg = (
+            service.users()
+            .messages()
+            .get(
+                userId="me",
+                id=message["id"],
+                format="metadata",
+                metadataHeaders=["From", "Subject"],
+            )
+            .execute()
         )
-        .execute()
-    )
-    return format_message_metadata(msg, user_tz)
+    finally:
+        if timing is not None:
+            timing["api_seconds"] += time.perf_counter() - request_started
+
+    format_started = time.perf_counter()
+    try:
+        return format_message_metadata(msg, user_tz)
+    finally:
+        if timing is not None:
+            timing["format_seconds"] += time.perf_counter() - format_started
 
 
 def format_message_metadata(msg, user_tz: str) -> tuple[str, str]:
