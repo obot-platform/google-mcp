@@ -12,7 +12,7 @@ from app.tools.properties import register_property_tools
 from app.tools.sitemaps import register_sitemap_tools
 
 PORT = int(os.getenv("PORT", 9000))
-MCP_PATH = os.getenv("MCP_PATH", "/mcp/google-search-console")
+MCP_PATH = os.getenv("MCP_PATH", "/mcp/google-search-console/")
 
 mcp = FastMCP(
     name="google_search_console_mcp",

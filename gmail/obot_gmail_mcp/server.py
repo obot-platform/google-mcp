@@ -39,7 +39,7 @@ from .apis.messages import (
 
 # Configure server-specific settings
 PORT = int(os.getenv("PORT", 9000))
-MCP_PATH = os.getenv("MCP_PATH", "/mcp/gmail")
+MCP_PATH = os.getenv("MCP_PATH", "/mcp/gmail/")
 GOOGLE_OAUTH_TOKEN = os.getenv("GOOGLE_OAUTH_TOKEN")
 logger = setup_logger(__name__)
 

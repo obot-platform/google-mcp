@@ -36,7 +36,7 @@ from fastmcp.exceptions import ToolError
 
 # Configure server-specific settings
 PORT = int(os.getenv("PORT", 9000))
-MCP_PATH = os.getenv("MCP_PATH", "/mcp/google-drive")
+MCP_PATH = os.getenv("MCP_PATH", "/mcp/google-drive/")
 GOOGLE_OAUTH_TOKEN = os.getenv("GOOGLE_OAUTH_TOKEN")
 
 mcp = FastMCP(

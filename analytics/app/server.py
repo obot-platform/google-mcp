@@ -12,7 +12,7 @@ from app.tools.realtime import register_realtime_tools
 from app.tools.reporting import register_reporting_tools
 
 PORT = int(os.getenv("PORT", 9000))
-MCP_PATH = os.getenv("MCP_PATH", "/mcp/google-analytics")
+MCP_PATH = os.getenv("MCP_PATH", "/mcp/google-analytics/")
 
 mcp = FastMCP(
     name="google_analytics_mcp",

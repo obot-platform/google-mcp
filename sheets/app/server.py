@@ -16,7 +16,7 @@ from gspread.exceptions import APIError
 
 
 PORT = int(os.getenv("PORT", 9000))
-MCP_PATH = os.getenv("MCP_PATH", "/mcp/google-sheets")
+MCP_PATH = os.getenv("MCP_PATH", "/mcp/google-sheets/")
 
 mcp = FastMCP(
     name="GoogleSheetsMCPServer",

@@ -8,7 +8,7 @@ import os
 
 # Add the parent directory to the Python path so we can import from app
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from app.server import mcp
+from app.server import mcp, streamable_http_server
 
 # Configure pytest for async support
 pytestmark = pytest.mark.asyncio
@@ -79,6 +79,17 @@ def mock_event_data():
 # Integration Tests - Testing the MCP Server
 class TestMCPServer:
     """Test the FastMCP server integration"""
+
+    @patch("app.server.mcp.run")
+    async def test_server_path_matches_oauth_proxy_target(self, mock_run):
+        streamable_http_server()
+
+        mock_run.assert_called_once_with(
+            transport="streamable-http",
+            host="0.0.0.0",
+            port=9000,
+            path="/mcp/google-calendar/",
+        )
 
     async def test_list_tools(self):
         """Test that all tools are properly registered"""
