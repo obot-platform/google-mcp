@@ -5,7 +5,9 @@ from fastmcp.exceptions import ToolError
 from googleapiclient.errors import HttpError
 import json
 
-from obot_gmail_mcp.server import mcp, streamable_http_server
+from obot_gmail_mcp import server
+
+mcp = server.mcp
 
 
 def gmail_http_error(status: int, reason: str, message: str) -> HttpError:
@@ -27,13 +29,13 @@ pytestmark = pytest.mark.asyncio
 
 @patch("obot_gmail_mcp.server.mcp.run")
 async def test_server_path_matches_oauth_proxy_target(mock_run):
-    streamable_http_server()
+    server.streamable_http_server()
 
     mock_run.assert_called_once_with(
         transport="streamable-http",
         host="0.0.0.0",
-        port=9000,
-        path="/mcp/gmail/",
+        port=server.PORT,
+        path=server.MCP_PATH,
     )
 
 

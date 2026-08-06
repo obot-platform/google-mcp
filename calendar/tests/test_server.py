@@ -8,7 +8,9 @@ import os
 
 # Add the parent directory to the Python path so we can import from app
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from app.server import mcp, streamable_http_server
+from app import server
+
+mcp = server.mcp
 
 # Configure pytest for async support
 pytestmark = pytest.mark.asyncio
@@ -82,13 +84,13 @@ class TestMCPServer:
 
     @patch("app.server.mcp.run")
     async def test_server_path_matches_oauth_proxy_target(self, mock_run):
-        streamable_http_server()
+        server.streamable_http_server()
 
         mock_run.assert_called_once_with(
             transport="streamable-http",
             host="0.0.0.0",
-            port=9000,
-            path="/mcp/google-calendar/",
+            port=server.PORT,
+            path=server.MCP_PATH,
         )
 
     async def test_list_tools(self):
