@@ -1,10 +1,11 @@
-from unittest.mock import patch
+import asyncio
+from unittest.mock import ANY, patch
 
 from app import server
 
 
 @patch("app.server.mcp.run")
-def test_server_path_matches_oauth_proxy_target(mock_run):
+def test_server_configures_canonical_path_and_compatibility_middleware(mock_run):
     server.streamable_http_server()
 
     mock_run.assert_called_once_with(
@@ -12,4 +13,31 @@ def test_server_path_matches_oauth_proxy_target(mock_run):
         host="0.0.0.0",
         port=server.PORT,
         path=server.MCP_PATH,
+        middleware=ANY,
     )
+
+    middleware = mock_run.call_args.kwargs["middleware"]
+    assert len(middleware) == 1
+    assert middleware[0].cls is server.LegacyTrailingSlashMiddleware
+    assert middleware[0].kwargs == {"path": server.MCP_PATH}
+
+
+def test_legacy_trailing_slash_is_rewritten_without_redirect():
+    seen_paths = []
+
+    async def app(scope, receive, send):
+        seen_paths.append((scope["path"], scope["raw_path"]))
+
+    async def exercise_middleware():
+        middleware = server.LegacyTrailingSlashMiddleware(app, path=server.MCP_PATH)
+        for path in (server.MCP_PATH, f"{server.MCP_PATH}/"):
+            await middleware(
+                {"type": "http", "path": path, "raw_path": path.encode()},
+                None,
+                None,
+            )
+
+    asyncio.run(exercise_middleware())
+
+    expected = (server.MCP_PATH, server.MCP_PATH.encode())
+    assert seen_paths == [expected, expected]
