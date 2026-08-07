@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import patch, MagicMock, Mock
+from unittest.mock import ANY, patch, MagicMock, Mock
 from fastmcp import Client
 from fastmcp.exceptions import ToolError
 from googleapiclient.errors import HttpError
@@ -8,7 +8,9 @@ import os
 
 # Add the parent directory to the Python path so we can import from app
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from app.server import mcp
+from app import server
+
+mcp = server.mcp
 
 # Configure pytest for async support
 pytestmark = pytest.mark.asyncio
@@ -79,6 +81,42 @@ def mock_event_data():
 # Integration Tests - Testing the MCP Server
 class TestMCPServer:
     """Test the FastMCP server integration"""
+
+    @patch("app.server.mcp.run")
+    async def test_server_configures_canonical_path_and_compatibility_middleware(
+        self, mock_run
+    ):
+        server.streamable_http_server()
+
+        mock_run.assert_called_once_with(
+            transport="streamable-http",
+            host="0.0.0.0",
+            port=server.PORT,
+            path=server.MCP_PATH,
+            middleware=ANY,
+        )
+
+        middleware = mock_run.call_args.kwargs["middleware"]
+        assert len(middleware) == 1
+        assert middleware[0].cls is server.LegacyTrailingSlashMiddleware
+        assert middleware[0].kwargs == {"path": server.MCP_PATH}
+
+    async def test_legacy_trailing_slash_is_rewritten_without_redirect(self):
+        seen_paths = []
+
+        async def app(scope, receive, send):
+            seen_paths.append((scope["path"], scope["raw_path"]))
+
+        middleware = server.LegacyTrailingSlashMiddleware(app, path=server.MCP_PATH)
+        for path in (server.MCP_PATH, f"{server.MCP_PATH}/"):
+            await middleware(
+                {"type": "http", "path": path, "raw_path": path.encode()},
+                None,
+                None,
+            )
+
+        expected = (server.MCP_PATH, server.MCP_PATH.encode())
+        assert seen_paths == [expected, expected]
 
     async def test_list_tools(self):
         """Test that all tools are properly registered"""

@@ -1,11 +1,13 @@
 import pytest
-from unittest.mock import patch, MagicMock, Mock
+from unittest.mock import ANY, patch, MagicMock, Mock
 from fastmcp import Client
 from fastmcp.exceptions import ToolError
 from googleapiclient.errors import HttpError
 import json
 
-from obot_gmail_mcp.server import mcp
+from obot_gmail_mcp import server
+
+mcp = server.mcp
 
 
 def gmail_http_error(status: int, reason: str, message: str) -> HttpError:
@@ -23,6 +25,42 @@ def gmail_http_error(status: int, reason: str, message: str) -> HttpError:
 
 # Configure pytest for async support
 pytestmark = pytest.mark.asyncio
+
+
+@patch("obot_gmail_mcp.server.mcp.run")
+async def test_server_configures_canonical_path_and_compatibility_middleware(mock_run):
+    server.streamable_http_server()
+
+    mock_run.assert_called_once_with(
+        transport="streamable-http",
+        host="0.0.0.0",
+        port=server.PORT,
+        path=server.MCP_PATH,
+        middleware=ANY,
+    )
+
+    middleware = mock_run.call_args.kwargs["middleware"]
+    assert len(middleware) == 1
+    assert middleware[0].cls is server.LegacyTrailingSlashMiddleware
+    assert middleware[0].kwargs == {"path": server.MCP_PATH}
+
+
+async def test_legacy_trailing_slash_is_rewritten_without_redirect():
+    seen_paths = []
+
+    async def app(scope, receive, send):
+        seen_paths.append((scope["path"], scope["raw_path"]))
+
+    middleware = server.LegacyTrailingSlashMiddleware(app, path=server.MCP_PATH)
+    for path in (server.MCP_PATH, f"{server.MCP_PATH}/"):
+        await middleware(
+            {"type": "http", "path": path, "raw_path": path.encode()},
+            None,
+            None,
+        )
+
+    expected = (server.MCP_PATH, server.MCP_PATH.encode())
+    assert seen_paths == [expected, expected]
 
 
 # Fixtures

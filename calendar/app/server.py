@@ -19,12 +19,28 @@ from .tools.event import (
 )
 from starlette.requests import Request
 from starlette.responses import JSONResponse
+from starlette.middleware import Middleware
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 logger = setup_logger(__name__)
 
 # Configure server-specific settings
 PORT = int(os.getenv("PORT", 9000))
-MCP_PATH = os.getenv("MCP_PATH", "/mcp/google-calendar")
+MCP_PATH = os.getenv("MCP_PATH", "/mcp/google-calendar").rstrip("/")
+
+
+class LegacyTrailingSlashMiddleware:
+    def __init__(self, app: ASGIApp, path: str):
+        self.app = app
+        self.path = path
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] == "http" and scope["path"] == f"{self.path}/":
+            scope = dict(scope)
+            scope["path"] = self.path
+            scope["raw_path"] = self.path.encode()
+
+        await self.app(scope, receive, send)
 
 mcp = FastMCP(
     name="GoogleCalendarMCPServer",
@@ -902,6 +918,7 @@ def streamable_http_server():
         host="0.0.0.0",
         port=PORT,
         path=MCP_PATH,
+        middleware=[Middleware(LegacyTrailingSlashMiddleware, path=MCP_PATH)],
     )
 
 
