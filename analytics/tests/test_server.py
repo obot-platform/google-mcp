@@ -30,7 +30,7 @@ def test_legacy_trailing_slash_is_rewritten_without_redirect():
 
     async def exercise_middleware():
         middleware = server.LegacyTrailingSlashMiddleware(app, path=server.MCP_PATH)
-        for path in (server.MCP_PATH, f"{server.MCP_PATH}/"):
+        for path in (server.MCP_PATH, f"{server.MCP_PATH}/", f"{server.MCP_PATH}//"):
             await middleware(
                 {"type": "http", "path": path, "raw_path": path.encode()},
                 None,
@@ -40,4 +40,4 @@ def test_legacy_trailing_slash_is_rewritten_without_redirect():
     asyncio.run(exercise_middleware())
 
     expected = (server.MCP_PATH, server.MCP_PATH.encode())
-    assert seen_paths == [expected, expected]
+        assert seen_paths == [expected, expected, expected]

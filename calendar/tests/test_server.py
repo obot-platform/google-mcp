@@ -108,7 +108,7 @@ class TestMCPServer:
             seen_paths.append((scope["path"], scope["raw_path"]))
 
         middleware = server.LegacyTrailingSlashMiddleware(app, path=server.MCP_PATH)
-        for path in (server.MCP_PATH, f"{server.MCP_PATH}/"):
+        for path in (server.MCP_PATH, f"{server.MCP_PATH}/", f"{server.MCP_PATH}//"):
             await middleware(
                 {"type": "http", "path": path, "raw_path": path.encode()},
                 None,
@@ -116,7 +116,7 @@ class TestMCPServer:
             )
 
         expected = (server.MCP_PATH, server.MCP_PATH.encode())
-        assert seen_paths == [expected, expected]
+        assert seen_paths == [expected, expected, expected]
 
     async def test_list_tools(self):
         """Test that all tools are properly registered"""

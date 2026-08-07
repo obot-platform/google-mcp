@@ -37,7 +37,7 @@ class LegacyTrailingSlashMiddleware:
         self.path = path
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] == "http" and scope["path"] == f"{self.path}/":
+        if scope["type"] == "http" and scope["path"].rstrip("/") == self.path:
             scope = dict(scope)
             scope["path"] = self.path
             scope["raw_path"] = self.path.encode()

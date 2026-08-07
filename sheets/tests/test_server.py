@@ -35,7 +35,7 @@ class StreamableHTTPServerTest(TestCase):
             middleware = server.LegacyTrailingSlashMiddleware(
                 app, path=server.MCP_PATH
             )
-            for path in (server.MCP_PATH, f"{server.MCP_PATH}/"):
+            for path in (server.MCP_PATH, f"{server.MCP_PATH}/", f"{server.MCP_PATH}//"):
                 await middleware(
                     {"type": "http", "path": path, "raw_path": path.encode()},
                     None,
@@ -45,4 +45,4 @@ class StreamableHTTPServerTest(TestCase):
         asyncio.run(exercise_middleware())
 
         expected = (server.MCP_PATH, server.MCP_PATH.encode())
-        self.assertEqual(seen_paths, [expected, expected])
+        self.assertEqual(seen_paths, [expected, expected, expected])
