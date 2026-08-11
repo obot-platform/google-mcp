@@ -55,7 +55,6 @@ class LegacyTrailingSlashMiddleware:
         # Legacy OAuth proxies can append multiple slashes to a slashed base URL.
         if (
             scope["type"] == "http"
-            and scope["path"] != self.path
             and scope["path"].rstrip("/") == self.path
         ):
             scope = dict(scope)
