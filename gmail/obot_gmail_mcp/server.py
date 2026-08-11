@@ -171,7 +171,7 @@ def list_emails_tool(
     max_results: Annotated[
         int,
         Field(
-            description="Maximum number of emails to return.", ge=1, le=1000, default=50
+            description="Maximum number of emails to return.", ge=1, le=250, default=50
         ),
     ] = 50,
     label_ids: Annotated[

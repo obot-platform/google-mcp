@@ -271,6 +271,13 @@ class TestEmailFunctions:
                     name="list_emails", arguments={"query": "after:2024-01-01"}
                 )
 
+    async def test_list_emails_rejects_more_than_250_results(self):
+        with pytest.raises(ToolError, match="less than or equal to 250"):
+            async with Client(mcp) as client:
+                await client.call_tool(
+                    name="list_emails", arguments={"max_results": 251}
+                )
+
     @patch("obot_gmail_mcp.server._get_access_token")
     @patch("obot_gmail_mcp.server.get_client")
     @patch("obot_gmail_mcp.server.fetch_email_or_draft")
@@ -962,16 +969,16 @@ class TestPerformance:
         mock_get_client.return_value = mock_service
 
         # Create a large list of mock emails
-        large_email_list = [{"id": f"email_{i}"} for i in range(1000)]
+        large_email_list = [{"id": f"email_{i}"} for i in range(250)]
         mock_list_messages.return_value = large_email_list
         mock_message_to_string.return_value = (None, "Formatted Email")
 
         async with Client(mcp) as client:
             result = await client.call_tool(
-                name="list_emails", arguments={"max_results": 1000}
+                name="list_emails", arguments={"max_results": 250}
             )
             res_json = json.loads(result.content[0].text)
-            assert len(res_json) == 1000
+            assert len(res_json) == 250
             assert all(email == "Formatted Email" for email in res_json)
 
 
