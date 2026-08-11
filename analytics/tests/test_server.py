@@ -2,6 +2,7 @@ import asyncio
 from unittest.mock import ANY, patch
 
 from app import server
+from httpx import ASGITransport, AsyncClient
 
 
 @patch("app.server.mcp.run")
@@ -22,22 +23,40 @@ def test_server_configures_canonical_path_and_compatibility_middleware(mock_run)
     assert middleware[0].kwargs == {"path": server.MCP_PATH}
 
 
-def test_legacy_trailing_slash_is_rewritten_without_redirect():
-    seen_paths = []
+@patch("app.server.mcp.run")
+def test_mcp_endpoint_accepts_trailing_slash_variants_without_redirect(mock_run):
+    server.streamable_http_server()
+    config = mock_run.call_args.kwargs
+    app = server.mcp.http_app(
+        transport=config["transport"],
+        path=config["path"],
+        middleware=config["middleware"],
+    )
 
-    async def app(scope, receive, send):
-        seen_paths.append((scope["path"], scope["raw_path"]))
+    async def exercise_endpoint():
+        async with app.router.lifespan_context(app):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(
+                transport=transport,
+                base_url="http://testserver",
+                follow_redirects=False,
+            ) as client:
+                return [
+                    await client.post(
+                        path,
+                        content=b"{}",
+                        headers={"content-type": "application/json"},
+                    )
+                    for path in (
+                        server.MCP_PATH,
+                        f"{server.MCP_PATH}/",
+                        f"{server.MCP_PATH}///",
+                    )
+                ]
 
-    async def exercise_middleware():
-        middleware = server.LegacyTrailingSlashMiddleware(app, path=server.MCP_PATH)
-        for path in (server.MCP_PATH, f"{server.MCP_PATH}/"):
-            await middleware(
-                {"type": "http", "path": path, "raw_path": path.encode()},
-                None,
-                None,
-            )
+    responses = asyncio.run(exercise_endpoint())
 
-    asyncio.run(exercise_middleware())
-
-    expected = (server.MCP_PATH, server.MCP_PATH.encode())
-    assert seen_paths == [expected, expected]
+    assert len({response.status_code for response in responses}) == 1
+    for response in responses:
+        assert not 300 <= response.status_code < 400
+        assert "location" not in response.headers
