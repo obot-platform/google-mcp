@@ -108,7 +108,7 @@ class UsageTelemetry(Middleware):
         if not self._enabled:
             return JSONResponse({"error": "usage_metrics_disabled"}, status_code=503)
         token = request.headers.get("x-obot-metrics-token", "")
-        if not hmac.compare_digest(token, self._scrape_token):
+        if not hmac.compare_digest(token.encode(), self._scrape_token.encode()):
             return JSONResponse({"error": "unauthorized"}, status_code=401)
         async with self._lock:
             self._roll_day()
