@@ -24,6 +24,7 @@ from fastmcp.server.dependencies import get_http_headers
 from .apis.helper import get_client
 from googleapiclient.errors import HttpError
 from fastmcp.exceptions import ToolError
+from obot_mcp_usage import UsageTelemetry
 
 
 # Configure server-specific settings
@@ -53,11 +54,18 @@ mcp = FastMCP(
     name="GoogleDocsMCPServer",
     on_duplicate="error",
 )
+usage = UsageTelemetry("google-docs", "Google Docs", "google")
+mcp.add_middleware(usage)
 
 
 @mcp.custom_route("/health", methods=["GET"])
 async def health_check(request: Request):
     return JSONResponse({"status": "healthy"})
+
+
+@mcp.custom_route("/internal/metrics/usage", methods=["GET"])
+async def usage_metrics(request: Request):
+    return await usage.handle_request(request)
 
 
 def _get_access_token() -> str:

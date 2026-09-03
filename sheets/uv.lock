@@ -770,6 +770,7 @@ dependencies = [
     { name = "fastmcp" },
     { name = "google-api-python-client" },
     { name = "gspread" },
+    { name = "obot-mcp-usage" },
 ]
 
 [package.dev-dependencies]
@@ -782,10 +783,16 @@ requires-dist = [
     { name = "fastmcp", specifier = ">=3.4.5" },
     { name = "google-api-python-client", specifier = ">=2.178.0" },
     { name = "gspread", specifier = ">=6.2.1" },
+    { name = "obot-mcp-usage", directory = "../shared" },
 ]
 
 [package.metadata.requires-dev]
 dev = [{ name = "ruff", specifier = ">=0.12.7" }]
+
+[[package]]
+name = "obot-mcp-usage"
+version = "0.1.0"
+source = { directory = "../shared" }
 
 [[package]]
 name = "openapi-pydantic"

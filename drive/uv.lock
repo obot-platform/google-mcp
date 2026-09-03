@@ -669,6 +669,7 @@ dependencies = [
     { name = "filetype" },
     { name = "google-api-python-client" },
     { name = "markitdown", extra = ["all"] },
+    { name = "obot-mcp-usage" },
     { name = "pytz" },
 ]
 
@@ -687,6 +688,7 @@ requires-dist = [
     { name = "filetype", specifier = ">=1.2.0" },
     { name = "google-api-python-client", specifier = ">=2.172.0" },
     { name = "markitdown", extras = ["all"], specifier = ">=0.1.2" },
+    { name = "obot-mcp-usage", directory = "../shared" },
     { name = "pytz", specifier = ">=2025.2" },
 ]
 
@@ -1221,6 +1223,11 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/eb/46/3dbaf0ae7c17cdc46b9f662c56da2054887b8d9e737c1476f335c83d33db/numpy-2.3.2-cp314-cp314t-win_amd64.whl", hash = "sha256:087ffc25890d89a43536f75c5fe8770922008758e8eeeef61733957041ed2f9b", size = 13111856, upload-time = "2025-07-24T20:56:17.318Z" },
     { url = "https://files.pythonhosted.org/packages/c1/9e/1652778bce745a67b5fe05adde60ed362d38eb17d919a540e813d30f6874/numpy-2.3.2-cp314-cp314t-win_arm64.whl", hash = "sha256:092aeb3449833ea9c0bf0089d70c29ae480685dd2377ec9cdbbb620257f84631", size = 10544226, upload-time = "2025-07-24T20:56:34.509Z" },
 ]
+
+[[package]]
+name = "obot-mcp-usage"
+version = "0.1.0"
+source = { directory = "../shared" }
 
 [[package]]
 name = "olefile"

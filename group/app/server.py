@@ -27,6 +27,7 @@ from .apis.domains import (
 )
 from starlette.requests import Request
 from starlette.responses import JSONResponse
+from obot_mcp_usage import UsageTelemetry
 
 logger = setup_logger(__name__)
 
@@ -38,6 +39,8 @@ mcp = FastMCP(
     name="GoogleGroupsMCPServer",
     on_duplicate="error",
 )
+usage = UsageTelemetry("google-groups", "Google Groups", "google")
+mcp.add_middleware(usage)
 
 
 def _get_access_token() -> str:
@@ -53,6 +56,11 @@ def _get_access_token() -> str:
 @mcp.custom_route("/health", methods=["GET"])
 async def health_check(request: Request):
     return JSONResponse({"status": "healthy"})
+
+
+@mcp.custom_route("/internal/metrics/usage", methods=["GET"])
+async def usage_metrics(request: Request):
+    return await usage.handle_request(request)
 
 
 @mcp.tool(
@@ -403,4 +411,3 @@ def stdio_server():
 
 if __name__ == "__main__":
     streamable_http_server()
-

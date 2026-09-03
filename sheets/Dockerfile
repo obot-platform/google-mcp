@@ -13,10 +13,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy uv project files first for better Docker layer caching
-COPY pyproject.toml uv.lock ./
+COPY sheets/pyproject.toml sheets/uv.lock ./
+COPY shared /shared
 
 # Copy your application code (needed for local package build)
-COPY . .
+COPY sheets/. .
 
 # Install dependencies using uv sync (faster and more reliable)
 RUN uv sync --frozen --no-dev --no-editable

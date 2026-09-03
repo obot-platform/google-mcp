@@ -5,9 +5,13 @@ description = "Add your description here"
 requires-python = ">=3.13"
 dependencies = [
     "fastmcp>=3.4.5",
+    "obot-mcp-usage",
     "google-api-python-client>=2.178.0",
     "gspread>=6.2.1",
 ]
+
+[tool.uv.sources]
+obot-mcp-usage = { path = "../shared" }
 
 [dependency-groups]
 dev = [

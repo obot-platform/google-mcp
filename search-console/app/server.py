@@ -7,6 +7,7 @@ from starlette.middleware import Middleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
+from obot_mcp_usage import UsageTelemetry
 
 from app.tools.analytics import register_analytics_tools
 from app.tools.inspection import register_inspection_tools
@@ -40,11 +41,18 @@ mcp = FastMCP(
     on_duplicate="error",
     mask_error_details=True,
 )
+usage = UsageTelemetry("google-search-console", "Google Search Console", "google")
+mcp.add_middleware(usage)
 
 
 @mcp.custom_route("/health", methods=["GET"])
 async def health_check(request: Request):
     return JSONResponse({"status": "healthy"})
+
+
+@mcp.custom_route("/internal/metrics/usage", methods=["GET"])
+async def usage_metrics(request: Request):
+    return await usage.handle_request(request)
 
 
 register_analytics_tools(mcp)
