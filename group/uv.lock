@@ -518,6 +518,7 @@ source = { editable = "." }
 dependencies = [
     { name = "fastmcp" },
     { name = "google-api-python-client" },
+    { name = "obot-mcp-usage" },
     { name = "pydantic" },
 ]
 
@@ -534,6 +535,7 @@ dev = [
 requires-dist = [
     { name = "fastmcp", specifier = "==3.4.5" },
     { name = "google-api-python-client", specifier = ">=2.172.0" },
+    { name = "obot-mcp-usage", directory = "../shared" },
     { name = "pydantic", specifier = "==2.12.5" },
 ]
 
@@ -819,6 +821,11 @@ sdist = { url = "https://files.pythonhosted.org/packages/ea/5d/38b681d3fce7a266d
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a4/8e/469e5a4a2f5855992e425f3cb33804cc07bf18d48f2db061aec61ce50270/more_itertools-10.8.0-py3-none-any.whl", hash = "sha256:52d4362373dcf7c52546bc4af9a86ee7c4579df9a8dc268be0a2f949d376cc9b", size = 69667, upload-time = "2025-09-02T15:23:09.635Z" },
 ]
+
+[[package]]
+name = "obot-mcp-usage"
+version = "0.1.0"
+source = { directory = "../shared" }
 
 [[package]]
 name = "openapi-pydantic"

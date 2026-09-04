@@ -1,8 +1,8 @@
 services:
   app:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: group/Dockerfile
     ports:
       - "9000:9000"
     environment:

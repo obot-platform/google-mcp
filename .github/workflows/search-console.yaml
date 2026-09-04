@@ -10,6 +10,7 @@ on:
   push:
     paths:
       - "search-console/**"
+      - "shared/**"
     branches:
       - main
 
@@ -34,7 +35,8 @@ jobs:
         id: build-and-push
         with:
           project: bbqjs4tj1g
-          context: ./search-console
+          context: .
+          file: ./search-console/Dockerfile
           push: true
           pull: true
           platforms: linux/amd64,linux/arm64

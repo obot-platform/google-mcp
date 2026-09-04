@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "fastmcp>=3.4.5",
+    "obot-mcp-usage",
     "filetype>=1.2.0",
     "google-api-python-client>=2.172.0",
     "markitdown[all]>=0.1.2",
@@ -15,6 +16,9 @@ dependencies = [
 [project.scripts]
 obot-google-drive-mcp = "server:streamable_http_server"
 obot-google-drive-mcp-stdio = "server:stdio_server"
+
+[tool.uv.sources]
+obot-mcp-usage = { path = "../shared" }
 
 [dependency-groups]
 dev = [

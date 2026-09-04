@@ -878,6 +878,7 @@ dependencies = [
     { name = "fastmcp" },
     { name = "filetype" },
     { name = "google-api-python-client" },
+    { name = "obot-mcp-usage" },
     { name = "pytz" },
 ]
 
@@ -897,6 +898,7 @@ requires-dist = [
     { name = "fastmcp", specifier = ">=3.4.5" },
     { name = "filetype", specifier = ">=1.2.0" },
     { name = "google-api-python-client", specifier = ">=2.172.0" },
+    { name = "obot-mcp-usage", directory = "../shared" },
     { name = "pytz", specifier = ">=2025.2" },
 ]
 
@@ -909,6 +911,11 @@ dev = [
     { name = "pytest-cov", specifier = ">=6.2.1" },
     { name = "ruff", specifier = ">=0.12.8" },
 ]
+
+[[package]]
+name = "obot-mcp-usage"
+version = "0.1.0"
+source = { directory = "../shared" }
 
 [[package]]
 name = "openapi-pydantic"

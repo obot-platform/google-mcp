@@ -15,6 +15,7 @@ from googleapiclient.errors import HttpError
 import gspread
 from gspread.utils import a1_range_to_grid_range, rowcol_to_a1, ValueInputOption
 from gspread.exceptions import APIError
+from obot_mcp_usage import UsageTelemetry
 
 
 PORT = int(os.getenv("PORT", 9000))
@@ -43,11 +44,18 @@ mcp = FastMCP(
     name="GoogleSheetsMCPServer",
     on_duplicate="error",  # Handle duplicate registrations
 )
+usage = UsageTelemetry("google-sheets", "Google Sheets", "google")
+mcp.add_middleware(usage)
 
 
 @mcp.custom_route("/health", methods=["GET"])
 async def health_check(request: Request):
     return JSONResponse({"status": "healthy"})
+
+
+@mcp.custom_route("/internal/metrics/usage", methods=["GET"])
+async def usage_metrics(request: Request):
+    return await usage.handle_request(request)
 
 
 def _get_access_token() -> str:

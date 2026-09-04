@@ -13,6 +13,7 @@ from starlette.middleware import Middleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
+from obot_mcp_usage import UsageTelemetry
 
 from .apis.drafts import list_drafts, update_draft
 from .apis.helpers import (
@@ -73,11 +74,18 @@ mcp = FastMCP(
     name="GmailMCPServer",
     on_duplicate="error",  # Handle duplicate registrations
 )
+usage = UsageTelemetry("google-gmail", "Gmail", "google")
+mcp.add_middleware(usage)
 
 
 @mcp.custom_route("/health", methods=["GET"])
 async def health_check(request: Request):
     return JSONResponse({"status": "healthy"})
+
+
+@mcp.custom_route("/internal/metrics/usage", methods=["GET"])
+async def usage_metrics(request: Request):
+    return await usage.handle_request(request)
 
 
 def _get_access_token(headers: dict[str, str] | None = None) -> str:

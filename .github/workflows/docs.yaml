@@ -10,6 +10,7 @@ on:
   push:
     paths:
       - "docs/**"
+      - "shared/**"
     branches:
       - main
 
@@ -34,7 +35,8 @@ jobs:
         id: build-and-push
         with:
           project: bbqjs4tj1g
-          context: ./docs
+          context: .
+          file: ./docs/Dockerfile
           push: true
           pull: true
           platforms: linux/amd64,linux/arm64
