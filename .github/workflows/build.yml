@@ -8,6 +8,22 @@ permissions:
   contents: read
 
 jobs:
+  telemetry-test:
+    name: Usage telemetry tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+          enable-cache: true
+          cache-dependency-glob: "drive/uv.lock"
+      - name: Test telemetry and MCP error dispatch
+        working-directory: drive
+        env:
+          PYTHONPATH: ../shared
+        run: uv run --frozen --no-dev python -m unittest discover -s ../shared/tests
+
   smoke-test:
     name: Smoke test (${{ matrix.component }})
     runs-on: ubuntu-latest
@@ -44,10 +60,11 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
-    needs: smoke-test
+    needs: [smoke-test, telemetry-test]
     if: ${{ always() }}
     steps:
       - name: Verify smoke tests passed
         env:
           SMOKE_TEST_RESULT: ${{ needs.smoke-test.result }}
-        run: test "$SMOKE_TEST_RESULT" = "success"
+          TELEMETRY_TEST_RESULT: ${{ needs.telemetry-test.result }}
+        run: test "$SMOKE_TEST_RESULT" = "success" && test "$TELEMETRY_TEST_RESULT" = "success"
