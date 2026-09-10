@@ -15,6 +15,8 @@ from fastmcp.server.middleware import Middleware, MiddlewareContext
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
+from .errors import classify_error
+
 MAX_DAILY_USERS = 25_000
 MAX_DAILY_TOOL_COUNTERS = 256
 MAX_TOOL_NAME_LENGTH = 128
@@ -36,6 +38,7 @@ class UsageTelemetry(Middleware):
         self._day = self._utc_day()
         self._calls: dict[str, int] = defaultdict(int)
         self._errors: dict[str, int] = defaultdict(int)
+        self._error_categories: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
         self._users: set[str] = set()
         self._unidentified_calls = 0
         self._lock = asyncio.Lock()
@@ -50,6 +53,7 @@ class UsageTelemetry(Middleware):
             self._day = day
             self._calls.clear()
             self._errors.clear()
+            self._error_categories.clear()
             self._users.clear()
             self._unidentified_calls = 0
         return day
@@ -93,15 +97,19 @@ class UsageTelemetry(Middleware):
                 self._unidentified_calls += 1
         try:
             result = await call_next(context)
-        except Exception:
+        except Exception as error:
+            category = classify_error(error=error)
             async with self._lock:
                 if self._roll_day() == day:
                     self._errors[tool] += 1
+                    self._error_categories[tool][category] += 1
             raise
         if bool(getattr(result, "isError", False)) or bool(getattr(result, "is_error", False)):
+            category = classify_error(result=result)
             async with self._lock:
                 if self._roll_day() == day:
                     self._errors[tool] += 1
+                    self._error_categories[tool][category] += 1
         return result
 
     async def handle_request(self, request: Request) -> JSONResponse:
@@ -119,7 +127,7 @@ class UsageTelemetry(Middleware):
                     "instance": {"id": self._instance_id, "startedAt": self._started_at},
                     "day": self._day,
                     "calls": [
-                        {"tool": tool, "calls": calls, "errors": self._errors.get(tool, 0)}
+                        {"tool": tool, "calls": calls, "errors": self._errors.get(tool, 0), "errorCategories": dict(self._error_categories.get(tool, {}))}
                         for tool, calls in sorted(self._calls.items())
                     ],
                     "userHashes": sorted(self._users),
