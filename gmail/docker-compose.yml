@@ -9,7 +9,8 @@ services:
       - "9000:9000"
     environment:
       PORT: 9000
-  
+      MCP_PATH: /mcp
+
   postgres_oauth:
     image: postgres:15
     container_name: oauth_db
@@ -23,14 +24,16 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   oauth-proxy:
-    image: ghcr.io/obot-platform/mcp-oauth-proxy:master
+    image: ghcr.io/obot-platform/mcp-oauth-proxy:v0.0.4
     environment:
+      HOST: "0.0.0.0"
+      MCP_SERVER_URL: "http://app:9000"
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
       DATABASE_DSN: "postgres://oauth_user:oauth_password@postgres_oauth:5432/oauth_proxy?sslmode=disable"
       SCOPES_SUPPORTED: "openid,profile,email,https://www.googleapis.com/auth/gmail.modify,https://www.googleapis.com/auth/gmail.labels,https://www.googleapis.com/auth/gmail.compose"
       OAUTH_CLIENT_ID: ${OAUTH_CLIENT_ID}
       OAUTH_CLIENT_SECRET: ${OAUTH_CLIENT_SECRET}
       OAUTH_AUTHORIZE_URL: "https://accounts.google.com"
-      MCP_SERVER_URL: "http://app:9000/mcp/gmail/"
     depends_on:
       - postgres_oauth
     ports:
