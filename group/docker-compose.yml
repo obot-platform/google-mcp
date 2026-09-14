@@ -7,6 +7,7 @@ services:
       - "9000:9000"
     environment:
       PORT: 9000
+      MCP_PATH: /mcp
   
   postgres_oauth:
     image: postgres:15
@@ -21,8 +22,9 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   oauth-proxy:
-    image: ghcr.io/obot-platform/mcp-oauth-proxy:v0.0.1
+    image: ghcr.io/obot-platform/mcp-oauth-proxy:v0.0.4
     environment:
+      HOST: "0.0.0.0"
       DATABASE_DSN: "postgres://oauth_user:oauth_password@postgres_oauth:5432/oauth_proxy?sslmode=disable"
       SCOPES_SUPPORTED: "openid,profile,email,https://www.googleapis.com/auth/admin.directory.group,https://www.googleapis.com/auth/admin.directory.group.member,https://www.googleapis.com/auth/admin.directory.domain.readonly"
       OAUTH_CLIENT_ID: ${OAUTH_CLIENT_ID}
